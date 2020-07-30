@@ -1,4 +1,4 @@
-# **SRUIL**: **S**imple **R**ust **U**ser **I**nterface **L**ibrary <br> aka "Surreal" 
+# **Surreal**: **S**imple **R**ust **U**ser **I**nterface **L**ibrary
 
 ## About
 Surreal is a Rust-native UI library focused on simplicity and extensibility. Below is an example demonstrating the minimalist nature of Surreal:
@@ -14,28 +14,24 @@ fn main() {
 
     // Views use declarative syntax
     let view = VStack! { 
-        // This is the id of the VStack
-        ("root_view")
-
-        // This becomes a variable accessible by anything that comes after via `vars`
-        counter: i32,
+        // This becomes a variable accessible by anything that comes after via `state`
+        State! {
+            counter: i32 = 0,
+        },
         
         Text::new("counter_text")
-            .on_update(|text, vars| text = vars.counter.to_string())
+            .on_update(|text, state| text = state.get::<i32>("counter").to_string())
             .update_animation(Animations::Bump),
 
         HStack! {
-            // This is the id of the HStack
-            ("button_row")
-
             Button::new("increment")
                 .text("+")
-                .on_click(|vars| vars.counter += 1),
+                .on_click(|state| state.get_i32("counter") += 1),
 
             Button::new("decrement")
                 .text("-")
-                .on_click(|vars| vars.counter -= 1)
-        }
+                .on_click(|state| state.get_i32("counter") -= 1)
+        },
     };
 
     app.run(view);
