@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate surreal;
 
+use surreal::application::Application;
 use surreal::state::State;
 use surreal::view::{TestView, TestWidget, ViewElement};
 
@@ -39,15 +40,23 @@ fn main() {
 
     println!("State macro: {:?}", state2);
 
-    // TODO: Remaining tests
+    let _no_state = TestView! {
+        TestWidget::new("no_state"),
+    };
+
+    // TODO:
     //       1) Access & modify state from multiple widgets
     //       2) Access & modify widgets from other widgets by id
     let mut view = TestView! {
         State! {
             something: i32 = 0,
+            times_modified: u32 = 0,
         },
 
-        TestWidget::new("test_1"),
+        TestWidget::new("test_1")
+            .function(|mut state| {
+
+            }),
 
         TestView! {
             TestWidget::new("test_2")
@@ -57,7 +66,12 @@ fn main() {
                     let thing = state.get::<i32>("something");
                     *thing += 2;
 
-                    println!("{}", state.get::<i32>("something"));
+                    let modified = state.get::<u32>("times_modified");
+                    *modified += 1;
+
+                    println!("{}", *state.peek::<i32>("something") + *state.peek::<u32>("times_modified") as i32);
+
+                    // println!("{}, {}", state.get::<i32>("something"), state.get_u32("times_modified"));
                 }),
         },
     };
@@ -66,7 +80,8 @@ fn main() {
     
     let widget = view.get_widget_by_id("test_2");
     widget.call_function(view.state.borrow_mut());
-    
+    // widget.state = 4;
 
-    // println!("View macro: {:?}", view);
+    let app = Application::new("Test", 800, 600);
+    app.run(view);
 }

@@ -27,7 +27,7 @@ impl Into<ViewElement> for TestWidget {
 
 pub struct TestWidget {
     id: &'static str,
-    state: i32,
+    pub state: i32,
 
     function: Option<Box<dyn Fn(RefMut<State>)>>,
 }
@@ -88,9 +88,21 @@ impl TestView {
         panic!("Widget `{}` not found", id);
     }
 
+    pub fn call_everything(&mut self) {
+        for element in &mut self.children {
+            match element {
+                ViewElement::Widget(widget) => {
+                    widget.call_function(self.state.borrow_mut());
+                }
+
+                _ => {}
+            }
+        }
+    }
+
     pub fn call_widget_function_on(&mut self, id: &'static str) {
         let widget = self.get_widget_by_id(id);
-        widget.call_function(self.state.borrow_mut());
+        // widget.call_function(self.state.borrow_mut());
     }
 }
 

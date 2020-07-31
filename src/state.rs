@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::any::Any;
 
+use std::cell::{RefCell, RefMut};
+
 macro_rules! make_get_type {
     ( $($t:ty), + ) => {
         paste::paste! {
@@ -32,8 +34,16 @@ impl State {
         }
     }
 
-    pub fn get_any(&mut self, id: &'static str) -> &mut Box<dyn Any> {
+    fn get_any_mut(&mut self, id: &'static str) -> &mut Box<dyn Any> {
         if let Some(var) = self.vars.get_mut(id) {
+            var
+        } else {
+            panic!("No such variable exists: `{}`", id);
+        }
+    }
+    
+    fn get_any(&self, id: &'static str) -> &Box<dyn Any> {
+        if let Some(var) = self.vars.get(id) {
             var
         } else {
             panic!("No such variable exists: `{}`", id);
@@ -41,14 +51,22 @@ impl State {
     }
 
     pub fn get<T: 'static>(&mut self, id: &'static str) -> &mut T {
-        if let Some(var) = self.get_any(id).downcast_mut::<T>() {
+        if let Some(var) = self.get_any_mut(id).downcast_mut::<T>() {
             var
         } else {
             panic!("Downcast of `{}` failed. Double check its type.", id);
         }
     }
 
-    // Convenience getters for base types
+    pub fn peek<T: 'static>(&self, id: &'static str) -> &T {
+        if let Some(var) = self.get_any(id).downcast_ref::<T>() {
+            var
+        } else {
+            panic!("Downcast of `{}` failed. Double check its type.", id);
+        }
+    }
+
+    // Convenience getters for primitive types
     make_get_type!(
         u8, u16, u32, u64, u128, 
         i8, i16, i32, i64, i128, 
