@@ -1,4 +1,4 @@
-use crate::view::*;
+use crate::view::View;
 
 use sdl2::event::Event;
 use wgpu::*;
@@ -93,7 +93,7 @@ impl Application {
         }
     }
 
-    pub fn run(self, view: TestView) {
+    pub fn run(self, view: &mut dyn View) {
         let mut event_pump = self.sdl.context.event_pump().unwrap();
 
         'main_loop: loop {

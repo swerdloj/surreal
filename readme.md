@@ -13,6 +13,7 @@ fn main() {
         .vsync(false);
 
     // Views use declarative syntax
+    // TODO: This can be greatly improved via procedural macros
     let view = VStack! { 
         // This becomes a variable accessible by anything that comes after via `state`
         State! {

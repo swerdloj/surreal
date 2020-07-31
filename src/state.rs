@@ -22,6 +22,12 @@ pub struct State {
 }
 
 impl State {
+    // TODO: Remove this once procedural macro is made. 
+    // This is a dirty duck-typing macro hack
+    pub fn as_element(self) -> crate::ViewElement {
+        crate::ViewElement::TEMP_State(self)
+    }
+
     pub fn new() -> Self {
         State {
             vars: HashMap::new(),
@@ -80,7 +86,7 @@ impl State {
 
 // TODO: It might be worth storing the type information somewhere since it
 //       is required anyway. This can be used for debugging (and perhaps even
-//       for an in-app variable editor)
+//       for an in-app variable editor).
 #[macro_export]
 macro_rules! State {
     ( $($name:ident : $type:ty = $value:expr),+ $(,)? ) => {{
