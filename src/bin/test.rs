@@ -8,6 +8,8 @@ use surreal::{IntoViewElement, Orientation, ViewElement};
 use surreal::widget::button::Button;
 
 fn main() {
+    let test = surreal::Color::new(1.0, 1.0, 1.0, 1.0);
+
     let mut view = VStack! {
         State! {
             test: u32 = 0,

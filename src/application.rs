@@ -1,6 +1,6 @@
 use crate::view::View;
 
-use sdl2::event::Event;
+use sdl2::event::{Event, WindowEvent};
 use wgpu::*;
 
 pub struct sdl {
@@ -12,8 +12,8 @@ pub struct sdl {
 pub struct gpu {
     render_surface: Surface,
     adapter: Adapter,
-    device: Device,
-    queue: Queue,
+    pub device: Device,
+    pub queue: Queue,
     sc_desc: SwapChainDescriptor,
     swap_chain: SwapChain,
 }
@@ -93,19 +93,40 @@ impl Application {
         }
     }
 
-    pub fn run(self, view: &mut dyn View) {
+    pub fn run(mut self, view: &mut dyn View) {
         let mut event_pump = self.sdl.context.event_pump().unwrap();
+        
+        // TEMP:
+        let mut test_font = crate::font::TextRenderer::new("./res/JetBrainsMono/JetBrainsMono-Medium.ttf", &self.gpu.device, TextureFormat::Bgra8UnormSrgb);
 
         'main_loop: loop {
+            // FIXME: Program crashes on resize unless this is scoped
+            // Probably caused by having render_target alive when creating new swap chain
+            {
+                let render_target = &self.gpu.swap_chain.get_next_texture().unwrap().view;
+                let (width, height) = self.sdl.window.size();
+                test_font.render_text(&mut self.gpu, &render_target, width, height, "This is a test");
+            }
+
             for event in event_pump.poll_iter() {
                 match event {
                     Event::Quit {..} => {
                         break 'main_loop;
                     }
 
+                    Event::Window { win_event: WindowEvent::Resized(width, height), .. } => {
+                        self.gpu.sc_desc.width = width as u32;
+                        self.gpu.sc_desc.height = height as u32;
+
+                        self.gpu.swap_chain = self.gpu.device.create_swap_chain(&self.gpu.render_surface, &self.gpu.sc_desc);
+                    }
+
                     _ => {}
                 }
             }
+
+            // TEMP: Force 60 FPS
+            std::thread::sleep(std::time::Duration::from_millis((1.0/60.0) as u64 * 1000));
         }
     }
 }

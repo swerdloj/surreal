@@ -10,7 +10,8 @@ fn main() {
     let app = Application::new()
         .resizable()
         .centered()
-        .vsync(false);
+        .vsync(false)
+        .on_quit(|| println!("Quitting..."));
 
     // Views use declarative syntax
     // TODO: This can be greatly improved via procedural macros

@@ -9,6 +9,11 @@
 
 theme ExampleTheme:
 
+fonts {
+    Default = "path/to/font.ttf"
+    Button = "some/specific/font.ttf"
+}
+
 styles {
     WidgetPadding = (10, 10, 5, 5) //left, right, top, bottom in pixels
     ViewPadding = 10 // equal to (10, 10, 10, 10)
