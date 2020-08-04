@@ -96,8 +96,14 @@ impl Application {
     pub fn run(mut self, view: &mut dyn View) {
         let mut event_pump = self.sdl.context.event_pump().unwrap();
         
-        // TEMP:
-        let mut test_font = crate::font::TextRenderer::new("./res/JetBrainsMono/JetBrainsMono-Medium.ttf", &self.gpu.device, TextureFormat::Bgra8UnormSrgb);
+        // TEMP: This is here for testing purposes
+        let mut test_text_renderer = crate::font::TextRenderer::from_fonts(
+            include_fonts! { 
+                default => "../res/JetBrainsMono/JetBrainsMono-Medium.ttf",
+            }, 
+            &self.gpu.device,
+            TextureFormat::Bgra8UnormSrgb
+        );
 
         'main_loop: loop {
             // FIXME: Program crashes on resize unless this is scoped
@@ -105,7 +111,7 @@ impl Application {
             {
                 let render_target = &self.gpu.swap_chain.get_next_texture().unwrap().view;
                 let (width, height) = self.sdl.window.size();
-                test_font.render_text(&mut self.gpu, &render_target, width, height, "This is a test");
+                test_text_renderer.render_text(&mut self.gpu, &render_target, width, height, "This is a test");
             }
 
             for event in event_pump.poll_iter() {
@@ -121,7 +127,9 @@ impl Application {
                         self.gpu.swap_chain = self.gpu.device.create_swap_chain(&self.gpu.render_surface, &self.gpu.sc_desc);
                     }
 
-                    _ => {}
+                    _ => {
+                        // println!("Unhandled event: {:?}", event);
+                    }
                 }
             }
 
