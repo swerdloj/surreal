@@ -110,6 +110,28 @@ impl Application {
             // Probably caused by having render_target alive when creating new swap chain
             {
                 let render_target = &self.gpu.swap_chain.get_next_texture().unwrap().view;
+                
+                
+                // TEMP: Clear the frame
+                let mut encoder = self.gpu.device.create_command_encoder(&CommandEncoderDescriptor {
+                    label: Some("clear_frame"),
+                });
+                encoder.begin_render_pass(&RenderPassDescriptor {
+                    color_attachments: &[
+                        RenderPassColorAttachmentDescriptor {
+                            attachment: render_target,
+                            resolve_target: None,
+                            load_op: LoadOp::Clear,
+                            store_op: StoreOp::Store,
+                            clear_color: Color {r: 0.03, g: 0.0, b: 0.02, a: 1.0},
+                        },
+                    ],
+                    depth_stencil_attachment: None,
+                });
+                // FIXME: encoder should be re-used in `render_text` (but this is temporary)
+                self.gpu.queue.submit(&[encoder.finish()]);
+
+                
                 let (width, height) = self.sdl.window.size();
                 test_text_renderer.render_text(&mut self.gpu, &render_target, width, height, "This is a test");
             }
@@ -117,6 +139,7 @@ impl Application {
             for event in event_pump.poll_iter() {
                 match event {
                     Event::Quit {..} => {
+                        println!("Exiting main loop...");
                         break 'main_loop;
                     }
 
