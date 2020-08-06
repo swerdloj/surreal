@@ -1,5 +1,8 @@
 use crate::state::State;
 use crate::rectangle::Rectangle;
+use crate::font::TextRenderer;
+
+use crate::application::{gpu, RenderTarget};
 
 use std::cell::RefMut;
 
@@ -30,10 +33,14 @@ impl Widget for Button {
     fn id(&self) -> &'static str {
         self.id
     }
+
+    fn render(&self, render_target: &mut RenderTarget, gpu: &mut gpu, text_renderer: &mut TextRenderer) {
+        
+    }
 }
 
 impl crate::IntoViewElement for Button {
-    fn as_element(self) -> crate::ViewElement {
+    fn into_element(self) -> crate::ViewElement {
         crate::ViewElement::Widget(Box::new(self))
     }
 }

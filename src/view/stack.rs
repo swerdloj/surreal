@@ -28,7 +28,7 @@ impl super::View for Stack {
 }
 
 impl crate::IntoViewElement for Stack {
-    fn as_element(self) -> ViewElement {
+    fn into_element(self) -> ViewElement {
         ViewElement::View(Box::new(self))
     }
 }
@@ -47,7 +47,7 @@ macro_rules! VStack {
         let mut has_state = false;
 
         $(
-            let child = $component.as_element();
+            let child = $component.into_element();
             match child {
                 ViewElement::TEMP_State(some_state) => {
                     if has_state {

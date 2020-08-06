@@ -22,9 +22,9 @@ pub struct State {
 }
 
 impl State {
-    // TODO: Remove this once procedural macro is made. 
+    // TEMP: Remove this once procedural macro is made. 
     // This is a dirty duck-typing macro hack
-    pub fn as_element(self) -> crate::ViewElement {
+    pub fn into_element(self) -> crate::ViewElement {
         crate::ViewElement::TEMP_State(self)
     }
 
