@@ -9,20 +9,25 @@ use surreal::{IntoViewElement, Orientation, ViewElement};
 use surreal::widget::button::Button;
 use surreal::widget::text::Text;
 
+
 fn main() {
+    // TODO: See whether state can be shared between widgets somehow
+    // using FnMut closures and Rc<RefCell>
+
     let mut view = VStack! {
         State! {
             test: u32 = 0,
         },
 
         Text::new("text")
-            .text("This is a text widget"),
+            .text("This is a text widget with some text in it")
+            .scale(30.0),
 
         Button::new("test")
             .on_click(|mut state| {
                 let test = state.get::<u32>("test");
                 *test += 1;
-                
+
                 println!("Presses: {}", test);
             }),
 
@@ -30,7 +35,6 @@ fn main() {
     };
 
     // NOTE: The extra '../' here is because this is in the '/bin' folder
-    // A library user would not need two of these
     let fonts = include_fonts! {
         default => "../../res/JetBrainsMono/JetBrainsMono-Medium.ttf",
     };

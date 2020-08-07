@@ -1,4 +1,4 @@
-use wgpu_glyph::{ab_glyph, GlyphBrushBuilder, Section, Text, FontId};
+use wgpu_glyph::{ab_glyph, GlyphBrushBuilder, Section, FontId};
 
 use crate::application::gpu;
 
@@ -44,8 +44,8 @@ impl TextRenderer {
         }
     }
 
-    /// For use with the `include_fonts!` macro
     // TODO: Ensure that this accounts for FontId properly
+    /// For use with the `include_fonts!` macro
     pub fn from_fonts(fonts: Vec<(&'static str, ab_glyph::FontArc)>, device: &wgpu::Device, render_format: wgpu::TextureFormat) -> Self {
         let mut font_map = HashMap::new();
 
@@ -76,18 +76,17 @@ impl TextRenderer {
         }
     }
 
-    // TEMP: This will eventually be replaced with a simple builder allowing for easy placement/configuration
-    pub fn render_text(&mut self, wgpu: &mut gpu, target_texture_view: &wgpu::TextureView, target_width: u32, target_height: u32, text: &str) {
-        let section = Section {
-            screen_position: (10.0, 10.0),
-            text: vec![
-                Text::new(text)
-                    .with_scale(25.0)
-                    .with_color([1.0, 1.0, 1.0, 1.0])
-            ],
-            ..Section::default()
-        };
+    /// Get the font_id for a registered font
+    pub fn get_font_id(&self, alias: &str) -> FontId {
+        if let Some(font_id) = self.fonts.get(alias) {
+            *font_id
+        } else {
+            panic!("The font alias `{}` is not registered", alias);
+        }
+    }
 
+    // TEMP: This will eventually be replaced with a simple builder allowing for easy placement/configuration
+    pub fn render_section(&mut self, wgpu: &mut gpu, target_texture_view: &wgpu::TextureView, target_width: u32, target_height: u32, section: Section) {
         self.brush.queue(section);
 
         let mut encoder = wgpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -106,10 +105,18 @@ impl TextRenderer {
     }
 }
 
-#[macro_export]
 /// Load fonts as bytes from paths (embeds fonts in program)
 ///
 /// Generates a list of (alias, font) for use with TextRenderer
+///
+/// Usage:
+/// ```
+/// let fonts = include_fonts! {
+///     alias_1 => "path/to/font1",
+///     alias_2 => "path/to/font2", ...
+/// };
+/// ```
+#[macro_export]
 macro_rules! include_fonts {
     ( $($alias:ident => $font_path:expr),+ $(,)? ) => {{
         let mut fonts = Vec::new();

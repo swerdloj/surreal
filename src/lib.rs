@@ -32,6 +32,10 @@ impl Color {
         let [r, g, b, a] = color.into();
         Self::new(r, g, b, a)
     }
+
+    pub fn as_array(&self) -> [f32; 4] {
+        [self.r, self.g, self.b, self.a]
+    }
 }
 
 impl Into<wgpu::Color> for Color {

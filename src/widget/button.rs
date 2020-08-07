@@ -11,7 +11,7 @@ use super::Widget;
 pub struct Button {
     id: &'static str,
     rect: Rectangle,
-    on_click: Option<Box<dyn Fn(RefMut<State>)>>,
+    on_click: Option<Box<dyn FnMut(RefMut<State>)>>,
 }
 
 impl Button {
@@ -23,7 +23,7 @@ impl Button {
         }
     }
 
-    pub fn on_click<F: Fn(RefMut<State>) + 'static>(mut self, cb: F) -> Self {
+    pub fn on_click<F: FnMut(RefMut<State>) + 'static>(mut self, cb: F) -> Self {
         self.on_click = Some(Box::new(cb));
         self
     }
