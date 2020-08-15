@@ -18,17 +18,24 @@ pub struct gpu {
     swap_chain: SwapChain,
 }
 
-/// Texture for drawing to window
-pub struct RenderTarget<'sc_output> {
-    pub frame: &'sc_output TextureView,
-    pub width: u32,
-    pub height: u32,
+// TODO: Make text rendering a part of RenderContext (e.g.: RenderContext::render_text())
+/// Context for rendering to frame
+pub struct RenderContext<'frame> {
+    pub frame: &'frame TextureView,
+    pub render_pass: RenderPass<'frame>,
+    pub command_buffers: &'frame mut Vec<CommandBuffer>,
+
+    pub frame_width: u32,
+    pub frame_height: u32,
     pub format: TextureFormat,
 }
 
 pub struct Application {
     sdl: sdl,
     gpu: gpu,
+
+    quad_bind_group_layout: BindGroupLayout,
+    quad_render_pipeline: RenderPipeline,
 
     text_renderer: crate::font::TextRenderer,
 }
@@ -41,11 +48,18 @@ impl Application {
             Self::init_wgpu(&sdl.window)
         );
 
-        let text_renderer = crate::font::TextRenderer::from_fonts(fonts, &gpu.device, TextureFormat::Bgra8UnormSrgb);
+        let text_renderer = crate::font::TextRenderer::from_fonts(fonts, &gpu.device, crate::TEXTURE_FORMAT);
+
+        let quad_bind_group_layout = crate::render::Quad::bind_group_layout(&gpu.device);
+        let quad_render_pipeline = crate::render::Quad::create_render_pipeline(&gpu.device, &quad_bind_group_layout, crate::TEXTURE_FORMAT);
 
         Application {
             sdl,
             gpu,
+
+            quad_bind_group_layout,
+            quad_render_pipeline,
+
             text_renderer,
         }
     }
@@ -88,7 +102,7 @@ impl Application {
 
         let sc_desc = SwapChainDescriptor {
             usage: TextureUsage::OUTPUT_ATTACHMENT,
-            format: TextureFormat::Bgra8UnormSrgb,
+            format: crate::TEXTURE_FORMAT,
             width,
             height,
             // TODO: Allow user to toggle vsync
@@ -112,6 +126,9 @@ impl Application {
         
         let (mut window_width, mut window_height) = self.sdl.window.size();
         
+        // TEMP:
+        let test_quad = crate::render::Quad::new(&self.gpu.device, &self.quad_bind_group_layout);
+
         'main_loop: loop {
             for event in event_pump.poll_iter() {
                 match event {
@@ -140,9 +157,10 @@ impl Application {
                 
             // TEMP: Clear the frame
             let mut encoder = self.gpu.device.create_command_encoder(&CommandEncoderDescriptor {
-                label: Some("clear_frame"),
+                label: Some("frame_encoder"),
             });
-            encoder.begin_render_pass(&RenderPassDescriptor {
+
+            let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 color_attachments: &[
                     RenderPassColorAttachmentDescriptor {
                         attachment: &render_target.view,
@@ -154,14 +172,26 @@ impl Application {
                 ],
                 depth_stencil_attachment: None,
             });
-            // FIXME: encoder should be re-used in `render_text` (but this is temporary)
-            // Consider storing it in RenderTarget
-            self.gpu.queue.submit(&[encoder.finish()]);
 
-            let mut render_context = RenderTarget {
+            // TEMP: Testing quad rendering
+            render_pass.set_pipeline(&self.quad_render_pipeline);
+            render_pass.set_bind_group(0, &test_quad.uniform_bind_group, &[]);
+            render_pass.set_vertex_buffer(0, &test_quad.vertex_buffer, 0, 0);
+            render_pass.set_index_buffer(&test_quad.index_buffer, 0, 0);
+            render_pass.draw_indexed(0..6, 0, 0..1);
+
+            // NOTE: This must be declared here and stored as a reference
+            // to allow render_context to be dropped before submitting the buffers.
+            // In doing so, text can be rendered after clearing the frame.
+            // FIXME: Actual draw order is lost -- text always goes on top layer
+            let mut command_buffers = Vec::new();
+            let mut render_context = RenderContext {
                 frame: &render_target.view,
-                width: window_width,
-                height: window_height,
+                render_pass,
+                command_buffers: &mut command_buffers,
+
+                frame_width: window_width,
+                frame_height: window_height,
                 format: TextureFormat::Rgba8UnormSrgb,
             };
 
@@ -182,6 +212,10 @@ impl Application {
                     }
                 }
             }
+
+            drop(render_context);
+            self.gpu.queue.submit(&[encoder.finish()]);
+            self.gpu.queue.submit(&command_buffers);
             
             // TEMP: Force 60 FPS
             std::thread::sleep(std::time::Duration::from_millis((1.0/60.0) as u64 * 1000));

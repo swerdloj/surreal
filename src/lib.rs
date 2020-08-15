@@ -5,9 +5,22 @@ pub mod font;
 pub mod application;
 pub mod widget;
 pub mod rectangle;
+pub mod render;
 
 use crate::widget::Widget;
 use crate::view::View;
+
+pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
+
+pub enum EventResponse {
+    /// Event will be consumed, preventing it from propogating any further.
+    ///
+    /// For example, a button will `Consume` left click events, 
+    /// preventing other widgets from seeing that event.
+    Consume,
+    /// No response given. The event will propogate to other elements.
+    None,
+}
 
 /// f32 RGBA color
 // TODO: Consider making a Color! macro that accepts RGB, RGBA, hex, etc.

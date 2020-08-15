@@ -2,9 +2,11 @@ use crate::state::State;
 use crate::rectangle::Rectangle;
 use crate::font::TextRenderer;
 
-use crate::application::{gpu, RenderTarget};
+use crate::application::{gpu, RenderContext};
 
 use std::cell::RefMut;
+
+use sdl2::event::Event;
 
 use super::Widget;
 
@@ -34,7 +36,16 @@ impl Widget for Button {
         self.id
     }
 
-    fn render(&self, render_target: &mut RenderTarget, gpu: &mut gpu, text_renderer: &mut TextRenderer) {
+    fn handle_event(&mut self, event: &Event) -> crate::EventResponse {
+        match event {
+            Event::MouseButtonUp { mouse_btn: sdl2::mouse::MouseButton::Left, .. } => {
+                crate::EventResponse::Consume
+            }
+            _ => crate::EventResponse::None,
+        }
+    }
+
+    fn render(&self, render_context: &mut RenderContext, gpu: &mut gpu, text_renderer: &mut TextRenderer) {
         
     }
 }

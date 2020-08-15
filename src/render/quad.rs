@@ -1,3 +1,12 @@
+/*
+
+NOTE:
+
+This file is here as a reference.
+Taken from my ray tracer.
+
+*/
+
 use wgpu::*;
 
 use crate::texture;
@@ -61,12 +70,12 @@ impl Quad {
         let indices = [0u32, 1, 2, 0, 2, 3]; // (topR -> topL, botL), (topR, botL, botR)
 
         let vertex_buffer = device.create_buffer_with_data(
-            bytemuck::cast_slice(&[vertices]),
+            bytemuck::cast_slice(&vertices),
             BufferUsage::VERTEX
         );
 
         let index_buffer = device.create_buffer_with_data(
-            bytemuck::cast_slice(&[indices]), 
+            bytemuck::cast_slice(&indices), 
             BufferUsage::INDEX,
         );
 

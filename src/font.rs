@@ -85,8 +85,9 @@ impl TextRenderer {
         }
     }
 
+    // TODO: Auto-generate Section from formatted text (like markdown)
     // TEMP: This will eventually be replaced with a simple builder allowing for easy placement/configuration
-    pub fn render_section(&mut self, wgpu: &mut gpu, target_texture_view: &wgpu::TextureView, target_width: u32, target_height: u32, section: Section) {
+    pub fn render_section(&mut self, wgpu: &mut gpu, target_texture_view: &wgpu::TextureView, command_buffers: &mut Vec<wgpu::CommandBuffer>, target_width: u32, target_height: u32, section: Section) {
         self.brush.queue(section);
 
         let mut encoder = wgpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -101,7 +102,9 @@ impl TextRenderer {
             target_height,
         ).unwrap();
 
-        wgpu.queue.submit(&[encoder.finish()]);
+        command_buffers.push(encoder.finish());
+
+        // wgpu.queue.submit(&[encoder.finish()]);
     }
 }
 

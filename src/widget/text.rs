@@ -1,6 +1,6 @@
 use super::Widget;
 
-use crate::application::{gpu, RenderTarget};
+use crate::application::{gpu, RenderContext};
 use crate::font::TextRenderer;
 
 pub struct Text {
@@ -50,7 +50,7 @@ impl Widget for Text {
         self.id
     }
 
-    fn render(&self, render_target: &mut RenderTarget, gpu: &mut gpu, text_renderer: &mut TextRenderer) {
+    fn render(&self, render_context: &mut RenderContext, gpu: &mut gpu, text_renderer: &mut TextRenderer) {
         let font_id = if self.font == "" {
             text_renderer.get_font_id("default")
         } else {  
@@ -77,9 +77,10 @@ impl Widget for Text {
         
         text_renderer.render_section(
             gpu, 
-            render_target.frame, 
-            render_target.width, 
-            render_target.height, 
+            render_context.frame, 
+            render_context.command_buffers,
+            render_context.frame_width, 
+            render_context.frame_height, 
             section,
         );
     }
