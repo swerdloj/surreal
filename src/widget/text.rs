@@ -67,6 +67,7 @@ impl Widget for Text {
         // bold/italic words, different sizes, etc.
         // Consider implementing text formatting like markdown-style
         // to make this easy for users 
+        // TODO: Store this. It doesn't need to be re-created each frame
         let section = wgpu_glyph::Section {
             screen_position: (self.position.0 as f32, self.position.1 as f32),
             text: vec![

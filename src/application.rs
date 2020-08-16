@@ -18,6 +18,7 @@ pub struct gpu {
     swap_chain: SwapChain,
 }
 
+// TODO: Replace this with render::Renderer
 // TODO: Make text rendering a part of RenderContext (e.g.: RenderContext::render_text())
 /// Context for rendering to frame
 pub struct RenderContext<'frame> {
@@ -50,8 +51,8 @@ impl Application {
 
         let text_renderer = crate::font::TextRenderer::from_fonts(fonts, &gpu.device, crate::TEXTURE_FORMAT);
 
-        let quad_bind_group_layout = crate::render::Quad::bind_group_layout(&gpu.device);
-        let quad_render_pipeline = crate::render::Quad::create_render_pipeline(&gpu.device, &quad_bind_group_layout, crate::TEXTURE_FORMAT);
+        let quad_bind_group_layout = crate::render::quad::Quad::bind_group_layout(&gpu.device);
+        let quad_render_pipeline = crate::render::quad::Quad::create_render_pipeline(&gpu.device, &quad_bind_group_layout, crate::TEXTURE_FORMAT);
 
         Application {
             sdl,
@@ -127,7 +128,7 @@ impl Application {
         let (mut window_width, mut window_height) = self.sdl.window.size();
         
         // TEMP:
-        let test_quad = crate::render::Quad::new(&self.gpu.device, &self.quad_bind_group_layout);
+        let test_quad = crate::render::quad::Quad::new(&self.gpu.device, &self.quad_bind_group_layout);
 
         'main_loop: loop {
             for event in event_pump.poll_iter() {
@@ -174,11 +175,7 @@ impl Application {
             });
 
             // TEMP: Testing quad rendering
-            render_pass.set_pipeline(&self.quad_render_pipeline);
-            render_pass.set_bind_group(0, &test_quad.uniform_bind_group, &[]);
-            render_pass.set_vertex_buffer(0, &test_quad.vertex_buffer, 0, 0);
-            render_pass.set_index_buffer(&test_quad.index_buffer, 0, 0);
-            render_pass.draw_indexed(0..6, 0, 0..1);
+            test_quad.render(&mut render_pass, &self.quad_render_pipeline);
 
             // NOTE: This must be declared here and stored as a reference
             // to allow render_context to be dropped before submitting the buffers.

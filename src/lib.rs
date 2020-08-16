@@ -1,6 +1,5 @@
 pub mod state;
 pub mod view;
-#[macro_use]
 pub mod font;
 pub mod application;
 pub mod widget;
