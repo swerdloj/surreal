@@ -87,35 +87,31 @@ impl TextRenderer {
 
     // TODO: Auto-generate Section from formatted text (like markdown)
     // TEMP: This will eventually be replaced with a simple builder allowing for easy placement/configuration
-    pub fn render_section(&mut self, wgpu: &mut gpu, target_texture_view: &wgpu::TextureView, command_buffers: &mut Vec<wgpu::CommandBuffer>, target_width: u32, target_height: u32, section: Section) {
+    pub fn render_section(&mut self, device: &wgpu::Device, target_texture_view: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, target_width: u32, target_height: u32, section: glyph_brush::OwnedSection) {
         // TODO: Find a convenient way to size text using the following
         use wgpu_glyph::GlyphCruncher;
         let bounds = self.brush.glyph_bounds(&section).unwrap();
-        println!("{:?}", bounds);
+        // println!("{:?}", bounds);
         
-        self.brush.queue(section);
-
-        let mut encoder = wgpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("text_renderer_encoder"),
-        });
+        self.brush.queue(&section);
 
         self.brush.draw_queued(
-            &wgpu.device,
-            &mut encoder,
+            &device,
+            encoder,
             target_texture_view,
             target_width,
             target_height,
         ).unwrap();
-
-        command_buffers.push(encoder.finish());
-
-        // wgpu.queue.submit(&[encoder.finish()]);
     }
 }
 
+/// Type returned by `include_fonts` macro
+pub type IncludedFonts = Vec<(&'static str, wgpu_glyph::ab_glyph::FontArc)>;
+
 /// Load fonts as bytes from paths (embeds fonts in program)
 ///
-/// Generates a list of (alias, font) for use with TextRenderer
+/// Generates a list of (alias, font) for use with TextRenderer where
+/// `surreal::IncludedFonts` is a type alias for this list.
 ///
 /// Usage:
 /// ```

@@ -15,7 +15,7 @@ pub struct gpu {
     pub device: Device,
     pub queue: Queue,
     sc_desc: SwapChainDescriptor,
-    swap_chain: SwapChain,
+    pub swap_chain: SwapChain,
 }
 
 // TODO: Replace this with render::Renderer
@@ -35,33 +35,21 @@ pub struct Application {
     sdl: sdl,
     gpu: gpu,
 
-    quad_bind_group_layout: BindGroupLayout,
-    quad_render_pipeline: RenderPipeline,
-
-    text_renderer: crate::font::TextRenderer,
+    fonts: Option<crate::IncludedFonts>,
 }
 
 impl Application {
     // TODO: Accept theme here (which would include the fonts)
-    pub fn new(title: &str, width: u32, height: u32, fonts: Vec<(&'static str, wgpu_glyph::ab_glyph::FontArc)>) -> Self {
+    pub fn new(title: &str, width: u32, height: u32, fonts: crate::IncludedFonts) -> Self {
         let sdl = Self::init_sdl2(title, width, height);
         let gpu = futures::executor::block_on(
             Self::init_wgpu(&sdl.window)
         );
 
-        let text_renderer = crate::font::TextRenderer::from_fonts(fonts, &gpu.device, crate::TEXTURE_FORMAT);
-
-        let quad_bind_group_layout = crate::render::quad::Quad::bind_group_layout(&gpu.device);
-        let quad_render_pipeline = crate::render::quad::Quad::create_render_pipeline(&gpu.device, &quad_bind_group_layout, crate::TEXTURE_FORMAT);
-
         Application {
             sdl,
             gpu,
-
-            quad_bind_group_layout,
-            quad_render_pipeline,
-
-            text_renderer,
+            fonts: Some(fonts),
         }
     }
 
@@ -122,13 +110,31 @@ impl Application {
         }
     }
 
-    pub fn run(mut self, view: &mut dyn View) {
+    // FIXME: This isn't the best solution, but I don't want to pass fonts into `run`
+    fn take_fonts(&mut self) -> crate::IncludedFonts {
+        if let Some(_fonts) = &self.fonts {} else {
+            panic!("Fonts were already moved")
+        }
+
+        let mut swap = None;
+        std::mem::swap(&mut self.fonts, &mut swap);
+
+        swap.unwrap()
+    }
+
+    pub fn run(&mut self, view: &mut dyn View) {
         let mut event_pump = self.sdl.context.event_pump().unwrap();
         
-        let (mut window_width, mut window_height) = self.sdl.window.size();
-        
-        // TEMP:
-        let test_quad = crate::render::quad::Quad::new(&self.gpu.device, &self.quad_bind_group_layout);
+        let text_renderer = crate::font::TextRenderer::from_fonts(
+            self.take_fonts(), 
+            &self.gpu.device, 
+            crate::TEXTURE_FORMAT
+        );
+
+        let mut renderer = crate::render::Renderer::new(
+            &self.gpu.device,
+            text_renderer,
+        );
 
         'main_loop: loop {
             for event in event_pump.poll_iter() {
@@ -139,11 +145,10 @@ impl Application {
                     }
 
                     Event::Window { win_event: WindowEvent::Resized(width, height), .. } => {
-                        window_width = width as u32;
-                        window_height = height as u32;
+                        println!("Window resized to {}x{}", &width, &height);
 
-                        self.gpu.sc_desc.width = window_width;
-                        self.gpu.sc_desc.height = window_height;
+                        self.gpu.sc_desc.width = width as u32;
+                        self.gpu.sc_desc.height = height as u32;
 
                         self.gpu.swap_chain = self.gpu.device.create_swap_chain(&self.gpu.render_surface, &self.gpu.sc_desc);
                     }
@@ -154,68 +159,67 @@ impl Application {
                 }
             }
 
-            let render_target = self.gpu.swap_chain.get_next_texture().unwrap();
-                
-            // TEMP: Clear the frame
-            let mut encoder = self.gpu.device.create_command_encoder(&CommandEncoderDescriptor {
-                label: Some("frame_encoder"),
-            });
-
-            let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                color_attachments: &[
-                    RenderPassColorAttachmentDescriptor {
-                        attachment: &render_target.view,
-                        resolve_target: None,
-                        load_op: LoadOp::Clear,
-                        store_op: StoreOp::Store,
-                        clear_color: crate::Color::AUBERGINE.into(),
-                    },
-                ],
-                depth_stencil_attachment: None,
-            });
-
-            // TEMP: Testing quad rendering
-            test_quad.render(&mut render_pass, &self.quad_render_pipeline);
-
-            // NOTE: This must be declared here and stored as a reference
-            // to allow render_context to be dropped before submitting the buffers.
-            // In doing so, text can be rendered after clearing the frame.
-            // FIXME: Actual draw order is lost -- text always goes on top layer
-            let mut command_buffers = Vec::new();
-            let mut render_context = RenderContext {
-                frame: &render_target.view,
-                render_pass,
-                command_buffers: &mut command_buffers,
-
-                frame_width: window_width,
-                frame_height: window_height,
-                format: TextureFormat::Rgba8UnormSrgb,
-            };
-
-            // Render the view
-            for element in view.children() {
-                use crate::ViewElement::*;
-                match element {
-                    View(_view) => {
-                        // TODO: Render its contents
-                    }
-
-                    Widget(widget) => {
-                        widget.render(&mut render_context, &mut self.gpu, &mut self.text_renderer);
-                    }
-
-                    TEMP_State(_state) => {
-                        // This will be removed eventually
-                    }
-                }
-            }
-
-            drop(render_context);
-            self.gpu.queue.submit(&[encoder.finish()]);
-            self.gpu.queue.submit(&command_buffers);
+            self.render_view(&mut renderer, view);
             
             // TEMP: Force 60 FPS
             std::thread::sleep(std::time::Duration::from_millis((1.0/60.0) as u64 * 1000));
         }
+    }
+
+    fn render_view(&mut self, renderer: &mut crate::render::Renderer, view: &mut dyn View) {
+        let render_target = self.gpu.swap_chain.get_next_texture().unwrap();
+                
+        let mut encoder = self.gpu.device.create_command_encoder(&CommandEncoderDescriptor {
+            label: Some("render_encoder"),
+        });
+
+        // Initial frame clear
+        let _ = encoder.begin_render_pass(&RenderPassDescriptor {
+            color_attachments: &[
+                RenderPassColorAttachmentDescriptor {
+                    attachment: &render_target.view,
+                    resolve_target: None,
+                    load_op: LoadOp::Clear,
+                    store_op: StoreOp::Store,
+                    clear_color: crate::Color::AUBERGINE.into(),
+                },
+            ],
+            depth_stencil_attachment: None,
+        });
+
+        // All information needed by the renderer
+        let ctx = crate::render::RenderContext {
+            device: &self.gpu.device,
+            target: &render_target.view,
+            encoder: &mut encoder,
+        };
+
+        // Bundle the renderer and context for user-side simplicity
+        let mut renderer_with_context = crate::render::ContextualRenderer {
+            ctx,
+            renderer,
+            window_dimensions: (self.gpu.sc_desc.width, self.gpu.sc_desc.height),
+        };
+
+        // Render the view
+        for element in view.children() {
+            use crate::ViewElement::*;
+            match element {
+                View(_view) => {
+                    // TODO: Render its contents
+                }
+                
+                Widget(widget) => {
+                    widget.render(&mut renderer_with_context);
+                }
+                
+                TEMP_State(_state) => {
+                    // This will be removed eventually
+                }
+            }
+        }
+
+        // Does everything requested by the ContextualRenderer
+        self.gpu.queue.submit(&[encoder.finish()]);
     }
 }

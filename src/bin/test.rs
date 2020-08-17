@@ -39,6 +39,6 @@ fn main() {
         default => "../../res/JetBrainsMono/JetBrainsMono-Medium.ttf",
     };
 
-    let app = Application::new("Test", 800, 600, fonts);
+    let mut app = Application::new("Test", 800, 600, fonts);
     app.run(&mut view);
 }

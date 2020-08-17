@@ -11,6 +11,12 @@ use crate::view::View;
 
 pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
 
+
+// Re-exports
+// TODO: Identify the important items to place here
+pub use font::IncludedFonts;
+
+
 pub enum EventResponse {
     /// Event will be consumed, preventing it from propogating any further.
     ///
@@ -32,9 +38,10 @@ pub struct Color {
 }
 
 impl Color {
-    pub const WHITE: Color = Color { r: 1., g: 1., b: 1., a: 1. };
-    pub const BLACK: Color = Color { r: 0., g: 0., b: 0., a: 1. };
     pub const AUBERGINE: Color = Color { r: 0.03, g: 0.0, b: 0.02, a: 1.0 };
+    pub const BLACK:     Color = Color { r: 0.,   g: 0.,  b: 0.,   a: 1. };
+    pub const CLEAR:     Color = Color { r: 0.0,  g: 0.0, b: 0.0,  a: 0.0 };
+    pub const WHITE:     Color = Color { r: 1.,   g: 1.,  b: 1.,   a: 1. };
 
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
         Color {r, g, b, a}

@@ -2,8 +2,8 @@ use wgpu::*;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
-struct Uniforms {
-    color: cgmath::Vector3<f32>,
+pub struct Uniforms {
+    pub color: cgmath::Vector4<f32>,
 }
 
 unsafe impl bytemuck::Pod for Uniforms {}
@@ -28,7 +28,7 @@ impl QuadVertex {
 
     pub fn descriptor<'a>() -> VertexBufferDescriptor<'a> {
         VertexBufferDescriptor {
-            stride: size_of!(Self) as _,
+            stride: size_of!(Self),
             step_mode: InputStepMode::Vertex,
             attributes: &vertex_attr_array![
                 // Vertex location
@@ -40,46 +40,94 @@ impl QuadVertex {
 
 pub struct Quad {
     pub vertex_buffer: Buffer,
+    pub uniform_buffer: Buffer,
     pub index_buffer: Buffer,
+    
     pub uniform_bind_group: BindGroup,
 }
 
 impl Quad {
-    pub fn new(device: &Device, layout: &BindGroupLayout) -> Self {
+    fn vertices_from_rect(window_dimensions: (u32, u32), top_left: (i32, i32), width: u32, height: u32) -> [QuadVertex; 4] {
+        let quad_top_left = super::screen_space_to_draw_space(top_left, window_dimensions);
+        
+        let top_right = (top_left.0 + width as i32, top_left.1);
+        let quad_top_right = super::screen_space_to_draw_space(top_right, window_dimensions);
+        
+        let bottom_left = (top_left.0, top_left.1 - height as i32);
+        let quad_bottom_left = super::screen_space_to_draw_space(bottom_left, window_dimensions);
+        
+        let bottom_right = (top_left.0 + width as i32, top_left.1 - height as i32);
+        let quad_bottom_right = super::screen_space_to_draw_space(bottom_right, window_dimensions);
+    
+        [
+            QuadVertex::new((quad_top_right.0, quad_top_right.1, 0.0)), // Top right
+            QuadVertex::new((quad_top_left.0, quad_top_left.1, 0.0)), // Top left
+            QuadVertex::new((quad_bottom_left.0, quad_bottom_left.1, 0.0)), // Bottom left
+            QuadVertex::new((quad_bottom_right.0, quad_bottom_right.1, 0.0)), // Bottom right
+        ]
+    }
+
+    pub fn new(device: &Device, layout: &BindGroupLayout, window_dimensions: (u32, u32), top_left: (i32, i32), width: u32, height: u32) -> Self {
         let index_buffer = device.create_buffer_with_data(
             bytemuck::cast_slice(&[0u32, 1, 2, 0, 2, 3]), 
             BufferUsage::INDEX,
         );
 
-        let vertices = [
-            QuadVertex::new(( 0.5,  0.5, 0.0)), // Top right
-            QuadVertex::new((-0.5,  0.5, 0.0)), // Top left
-            QuadVertex::new((-0.5, -0.5, 0.0)), // Bottom left
-            QuadVertex::new(( 0.5, -0.5, 0.0)), // Bottom right
-        ];
+        let vertices = Self::vertices_from_rect(window_dimensions, top_left, width, height);
 
         let vertex_buffer = device.create_buffer_with_data(
             bytemuck::cast_slice(&vertices), 
-            BufferUsage::VERTEX,
+            BufferUsage::VERTEX, // | BufferUsage::COPY_DST,
         );
 
         let uniform_data = Uniforms {
-            color: (0.2, 0.2, 0.5).into(),
+            color: (1.0, 0.0, 0.0, 1.0).into(),
         };
 
-        let uniform_bind_group = Self::bind_group(device, layout, uniform_data);
+        let uniform_buffer = device.create_buffer_with_data(
+            bytemuck::cast_slice(&[uniform_data]),
+            BufferUsage::UNIFORM | BufferUsage::COPY_DST, 
+        );
+
+        let uniform_bind_group = Self::bind_group(device, layout, &uniform_buffer);
 
         Self {
             vertex_buffer,
+            uniform_buffer,
             index_buffer,
             uniform_bind_group,
         }
     }
 
+    pub fn update_vertices(&mut self, device: &Device, window_dimensions: (u32, u32), top_left: (i32, i32), width: u32, height: u32) {
+        let vertices = Self::vertices_from_rect(window_dimensions, top_left, width, height);
+    
+        // FIXME: Should I use a staging buffer or map_write() instead?
+        self.vertex_buffer = device.create_buffer_with_data(
+            bytemuck::cast_slice(&vertices),
+            BufferUsage::VERTEX, // BufferUsage::COPY_SRC
+        );
+    }
+
+    pub fn update_uniforms(&mut self, device: &Device, encoder: &mut CommandEncoder, uniforms: Uniforms) {
+        // FIXME: Would map_write() be easier here?
+
+        let staging_buffer = device.create_buffer_with_data(
+            bytemuck::cast_slice(&[uniforms]), 
+            BufferUsage::COPY_SRC,
+        );
+
+        encoder.copy_buffer_to_buffer(
+            &staging_buffer, 0, 
+            &self.uniform_buffer, 0, 
+            size_of!(Uniforms)
+        );
+    }
+
     // Quad will always outlive the RenderPass
-    pub fn render<'a, 'b>(&'a self, render_pass: &mut RenderPass<'b>, pipeline: &'b RenderPipeline)
+    pub fn render<'a, 'b>(&'a self, render_pass: &mut RenderPass<'b>/*, pipeline: &'b RenderPipeline */)
     where 'a: 'b {
-        render_pass.set_pipeline(pipeline);
+        // render_pass.set_pipeline(pipeline);
         render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
         render_pass.set_vertex_buffer(0, &self.vertex_buffer, 0, 0);
         render_pass.set_index_buffer(&self.index_buffer, 0, 0);
@@ -102,20 +150,15 @@ impl Quad {
         })
     }
 
-    fn bind_group(device: &Device, layout: &BindGroupLayout, uniform_data: Uniforms) -> BindGroup {
-        let buffer = &device.create_buffer_with_data(
-            bytemuck::cast_slice(&[uniform_data]), 
-            BufferUsage::UNIFORM,
-        );
-        
+    fn bind_group(device: &Device, layout: &BindGroupLayout, uniform_buffer: &Buffer) -> BindGroup {      
         device.create_bind_group(&BindGroupDescriptor {
             layout,
             bindings: &[
                 Binding {
                     binding: 0,
                     resource: BindingResource::Buffer {
-                        buffer,
-                        range: 0..size_of!(var uniform_data) as _,
+                        buffer: uniform_buffer,
+                        range: 0..size_of!(Uniforms),
                     },
                 },
             ],

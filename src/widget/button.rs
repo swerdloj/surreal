@@ -45,8 +45,13 @@ impl Widget for Button {
         }
     }
 
-    fn render(&self, render_context: &mut RenderContext, gpu: &mut gpu, text_renderer: &mut TextRenderer) {
-        
+    fn render(&self, renderer: &mut crate::render::ContextualRenderer) {
+        renderer.draw( crate::render::DrawCommand::Rect {
+            top_left: (10, 100),
+            width: 20,
+            height: 10,
+            color: crate::Color::WHITE,
+        });
     }
 }
 

@@ -50,17 +50,17 @@ impl Widget for Text {
         self.id
     }
 
-    fn render(&self, render_context: &mut RenderContext, gpu: &mut gpu, text_renderer: &mut TextRenderer) {
+    fn render(&self, renderer: &mut crate::render::ContextualRenderer) {
         let font_id = if self.font == "" {
-            text_renderer.get_font_id("default")
+            renderer.get_font_id("default")
         } else {  
-            text_renderer.get_font_id(&self.font)
+            renderer.get_font_id(&self.font)
         };
         
         let text = wgpu_glyph::Text::new(&self.text)
-        .with_scale(self.scale)
-        .with_color(self.color.as_array())
-        .with_font_id(font_id);
+            .with_scale(self.scale)
+            .with_color(self.color.as_array())
+            .with_font_id(font_id);
         
         // TODO: Use Section instead of a String and variables
         // this would also allow users to have mutli-colored text,
@@ -76,14 +76,8 @@ impl Widget for Text {
             ..wgpu_glyph::Section::default()
         };
         
-        text_renderer.render_section(
-            gpu, 
-            render_context.frame, 
-            render_context.command_buffers,
-            render_context.frame_width, 
-            render_context.frame_height, 
-            section,
-        );
+        // renderer.draw_text(section);
+        renderer.draw(crate::render::DrawCommand::Text(section.to_owned()));
     }
 }
 
