@@ -1,8 +1,5 @@
 use super::Widget;
 
-use crate::application::{gpu, RenderContext};
-use crate::font::TextRenderer;
-
 pub struct Text {
     id: &'static str,
     text: String,

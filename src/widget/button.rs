@@ -1,8 +1,5 @@
 use crate::state::State;
-use crate::rectangle::Rectangle;
-use crate::font::TextRenderer;
-
-use crate::application::{gpu, RenderContext};
+use crate::bounding_rect::BoundingRect;
 
 use std::cell::RefMut;
 
@@ -12,21 +9,35 @@ use super::Widget;
 
 pub struct Button {
     id: &'static str,
-    rect: Rectangle,
+    bounds: BoundingRect,
     on_click: Option<Box<dyn FnMut(RefMut<State>)>>,
+    // TEMP: Theme will handle this? Allow per-item theming?
+    color: crate::Color,
 }
 
 impl Button {
     pub fn new(id: &'static str) -> Self {
         Button {
             id,
-            rect: Rectangle::new(),
+            bounds: BoundingRect::new(),
             on_click: None,
+            color: crate::Color::WHITE,
         }
     }
 
     pub fn on_click<F: FnMut(RefMut<State>) + 'static>(mut self, cb: F) -> Self {
         self.on_click = Some(Box::new(cb));
+        self
+    }
+
+    // TEMP:
+    pub fn bounds(mut self, bounds: BoundingRect) -> Self {
+        self.bounds = bounds;
+        self
+    }
+
+    pub fn color(mut self, color: crate::Color) -> Self {
+        self.color = color;
         self
     }
 }
@@ -47,10 +58,10 @@ impl Widget for Button {
 
     fn render(&self, renderer: &mut crate::render::ContextualRenderer) {
         renderer.draw( crate::render::DrawCommand::Rect {
-            top_left: (10, 100),
-            width: 20,
-            height: 10,
-            color: crate::Color::WHITE,
+            top_left: self.bounds.top_left(),
+            width: self.bounds.width,
+            height: self.bounds.height,
+            color: self.color,
         });
     }
 }

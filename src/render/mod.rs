@@ -44,7 +44,10 @@ macro_rules! size_of {
     };
 }
 
+
+pub mod font;
 pub mod quad;
+
 
 pub fn screen_space_to_draw_space(point: (i32, i32), window_dimensions: (u32, u32)) -> (f32, f32) {
     //let aspect_ratio = window_dimensions.0 as f32 / window_dimensions.1 as f32;
@@ -105,13 +108,13 @@ pub struct Renderer {
     // quad_bind_group_layout: wgpu::BindGroupLayout,
     quad_render_pipeline: wgpu::RenderPipeline,
 
-    pub text_renderer: crate::font::TextRenderer,
+    pub text_renderer: font::TextRenderer,
 }
 
 // Reference: https://github.com/hecrj/iced/blob/master/wgpu/src/
 
 impl Renderer {
-    pub fn new(device: &wgpu::Device, text_renderer: crate::font::TextRenderer) -> Self {
+    pub fn new(device: &wgpu::Device, text_renderer: font::TextRenderer) -> Self {
         let quad_bind_group_layout = crate::render::quad::Quad::bind_group_layout(device);
         let quad_render_pipeline = crate::render::quad::Quad::create_render_pipeline(device, &quad_bind_group_layout, crate::TEXTURE_FORMAT);
         

@@ -4,7 +4,7 @@ use sdl2::event::{Event, WindowEvent};
 use wgpu::*;
 
 pub struct sdl {
-    context: sdl2::Sdl,
+    pub context: sdl2::Sdl,
     video_subsystem: sdl2::VideoSubsystem,
     window: sdl2::video::Window,
 }
@@ -35,6 +35,8 @@ pub struct Application {
     sdl: sdl,
     gpu: gpu,
 
+    timer: crate::timing::Timer,
+
     fonts: Option<crate::IncludedFonts>,
 }
 
@@ -46,9 +48,12 @@ impl Application {
             Self::init_wgpu(&sdl.window)
         );
 
+        let timer = crate::timing::Timer::from_sdl2_context(&sdl.context);
+
         Application {
             sdl,
             gpu,
+            timer,
             fonts: Some(fonts),
         }
     }
@@ -125,7 +130,7 @@ impl Application {
     pub fn run(&mut self, view: &mut dyn View) {
         let mut event_pump = self.sdl.context.event_pump().unwrap();
         
-        let text_renderer = crate::font::TextRenderer::from_fonts(
+        let text_renderer = crate::render::font::TextRenderer::from_fonts(
             self.take_fonts(), 
             &self.gpu.device, 
             crate::TEXTURE_FORMAT
@@ -136,6 +141,7 @@ impl Application {
             text_renderer,
         );
 
+        self.timer.start();
         'main_loop: loop {
             for event in event_pump.poll_iter() {
                 match event {
@@ -161,8 +167,8 @@ impl Application {
 
             self.render_view(&mut renderer, view);
             
-            // TEMP: Force 60 FPS
-            std::thread::sleep(std::time::Duration::from_millis((1.0/60.0) as u64 * 1000));
+            let dt = self.timer.tick();
+            crate::timing::Timer::await_fps(60, dt, 5);
         }
     }
 

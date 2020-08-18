@@ -1,10 +1,10 @@
 pub mod state;
 pub mod view;
-pub mod font;
 pub mod application;
 pub mod widget;
-pub mod rectangle;
+pub mod bounding_rect;
 pub mod render;
+pub mod timing;
 
 use crate::widget::Widget;
 use crate::view::View;
@@ -14,7 +14,7 @@ pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormS
 
 // Re-exports
 // TODO: Identify the important items to place here
-pub use font::IncludedFonts;
+pub use render::font::IncludedFonts;
 
 
 pub enum EventResponse {
@@ -30,6 +30,7 @@ pub enum EventResponse {
 /// f32 RGBA color
 // TODO: Consider making a Color! macro that accepts RGB, RGBA, hex, etc.
 // TODO: Should these be f64, or does it not matter?
+#[derive(Copy, Clone)]
 pub struct Color {
     pub r: f32,
     pub g: f32,
@@ -38,10 +39,12 @@ pub struct Color {
 }
 
 impl Color {
-    pub const AUBERGINE: Color = Color { r: 0.03, g: 0.0, b: 0.02, a: 1.0 };
-    pub const BLACK:     Color = Color { r: 0.,   g: 0.,  b: 0.,   a: 1. };
-    pub const CLEAR:     Color = Color { r: 0.0,  g: 0.0, b: 0.0,  a: 0.0 };
-    pub const WHITE:     Color = Color { r: 1.,   g: 1.,  b: 1.,   a: 1. };
+    pub const AUBERGINE:    Color = Color { r: 0.03,  g: 0.0,  b: 0.02,  a: 1.0 };
+    pub const ALMOST_WHITE: Color = Color { r: 0.9,   g: 0.9,  b: 0.9,   a: 1.0 };
+    pub const BLACK:        Color = Color { r: 0.0,   g: 0.0,  b: 0.0,   a: 1.0 };
+    pub const CLEAR:        Color = Color { r: 0.0,   g: 0.0,  b: 0.0,   a: 0.0 };
+    pub const DARK_GRAY:    Color = Color { r: 0.01,  g: 0.01, b: 0.01,  a: 1.0 };
+    pub const WHITE:        Color = Color { r: 1.0,   g: 1.0,  b: 1.0,   a: 1.0 };
 
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
         Color {r, g, b, a}

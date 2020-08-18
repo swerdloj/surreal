@@ -1,6 +1,4 @@
-use wgpu_glyph::{ab_glyph, GlyphBrushBuilder, Section, FontId};
-
-use crate::application::gpu;
+use wgpu_glyph::{ab_glyph, GlyphBrushBuilder, FontId};
 
 use std::collections::HashMap;
 
@@ -89,8 +87,8 @@ impl TextRenderer {
     // TEMP: This will eventually be replaced with a simple builder allowing for easy placement/configuration
     pub fn render_section(&mut self, device: &wgpu::Device, target_texture_view: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, target_width: u32, target_height: u32, section: glyph_brush::OwnedSection) {
         // TODO: Find a convenient way to size text using the following
-        use wgpu_glyph::GlyphCruncher;
-        let bounds = self.brush.glyph_bounds(&section).unwrap();
+        // use wgpu_glyph::GlyphCruncher;
+        // let bounds = self.brush.glyph_bounds(&section).unwrap();
         // println!("{:?}", bounds);
         
         self.brush.queue(&section);
