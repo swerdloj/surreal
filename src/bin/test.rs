@@ -15,6 +15,7 @@ fn main() {
     // TODO: See whether state can be shared between widgets somehow
     // using FnMut closures and Rc<RefCell>
 
+    // TODO: Consider implementing an Elm-like message system
     let mut view = VStack! {
         State! {
             test: u32 = 0,
@@ -31,22 +32,9 @@ fn main() {
 
                 println!("Presses: {}", test);
             })
-            .bounds(BoundingRect {
-                x: 10,
-                y: 150,
-                width: 200,
-                height: 100,
-            })
-            .color(Color::ALMOST_WHITE),
-
-        Button::new("test2")
-            .bounds(BoundingRect {
-                x: 10,
-                y: 260,
-                width: 780,
-                height: 100,
-            })
             .color(Color::DARK_GRAY),
+
+        Button::new("test2"),
     };
 
     // NOTE: The extra '../' here is because this is in the '/bin' folder
@@ -55,10 +43,10 @@ fn main() {
     };
 
     // TODO: This + pass to app
-    // let theme = include_themes! { 
-    //     default => "../../res/themes/default.theme"
-    // }
+    // let theme = include_theme!("../../res/themes/default.theme")
 
-    let mut app = Application::new("Test", 800, 600, fonts);
+    let mut app = Application::new("Test", 800, 600, fonts)
+        .fit_window_to_view(true);
+
     app.run(&mut view);
 }

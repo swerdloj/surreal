@@ -8,5 +8,8 @@ pub trait Widget : crate::IntoViewElement {
         crate::EventResponse::None
     }
 
-    fn render(&self, renderer: &mut crate::render::ContextualRenderer);
+    fn render_size(&self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) -> (u32, u32);
+    fn place(&mut self, x: i32, y: i32);
+
+    fn render(&self, renderer: &mut crate::render::ContextualRenderer, theme: &crate::style::Theme);
 }

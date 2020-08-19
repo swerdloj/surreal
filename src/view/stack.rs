@@ -9,6 +9,8 @@ pub struct Stack {
     // TODO: Children should be an ordered hashmap of (id -> element)
     // This would also enforce unique element ids
     children: Vec<ViewElement>,
+
+    bounds: crate::bounding_rect::BoundingRect,
 }
 
 impl Stack {
@@ -17,11 +19,82 @@ impl Stack {
             orientation,
             state: RefCell::new(state),
             children,
+
+            bounds: crate::bounding_rect::BoundingRect::new(),
         }
     }
 }
 
 impl super::View for Stack {
+    // TODO: Account for view padding
+    fn layout(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
+        let mut current_x = 0;
+        let mut current_y = 0;
+        let mut view_width = 0;
+        let mut view_height = 0;
+        
+        for child in &mut self.children {
+            match self.orientation {
+                Orientation::Horizontal => current_x += theme.padding.horizontal,
+                Orientation::Vertical => current_y += theme.padding.vertical,
+            }
+
+            match child {
+                ViewElement::View(view) => {
+                    todo!();
+                    // let (width, height) = view.size(text_renderer, theme);
+
+                    // match self.orientation {
+                    //     Orientation::Vertical => {
+                    //         current_y += height;
+                    //     }
+                    //     Orientation::Horizontal => {
+                    //         current_x += width;
+                    //     }
+                    // }
+                }
+                
+                ViewElement::Widget(widget) => {
+                    widget.place(current_x as i32, current_y as i32);
+                    println!("Placing {} at ({}, {})", widget.id(), current_x, current_y);
+                    
+                    let (width, height) = widget.render_size(text_renderer, theme);
+                    match self.orientation {
+                        Orientation::Vertical => {
+                            current_y += height;
+                            view_width = std::cmp::max(width, view_width);
+                        }
+                        Orientation::Horizontal => {
+                            current_x += width;
+                            view_height = std::cmp::max(height, view_height);
+                        }
+                    }
+                }
+
+                ViewElement::TEMP_State(_) => unreachable!(),
+            }
+        }
+
+        match self.orientation {
+            Orientation::Vertical => {
+                self.bounds.width = view_width;
+                self.bounds.height = current_y;
+            }
+            Orientation::Horizontal => {
+                self.bounds.width = current_x;
+                self.bounds.height = view_height;
+            }
+        }
+    }
+
+    fn render_width(&self) -> u32 {
+        self.bounds.width
+    }
+
+    fn render_height(&self) -> u32 {
+        self.bounds.height
+    }
+
     fn children(&mut self) -> &mut Vec<crate::ViewElement> {
         &mut self.children
     }
@@ -37,6 +110,7 @@ impl crate::IntoViewElement for Stack {
 // by supplying the expressions and the varient.
 // This prevents the two macros from having duplicated bodies.
 // Eventually, a procedural macro would replace the need for this
+
 
 #[macro_export]
 macro_rules! VStack {
@@ -69,10 +143,27 @@ macro_rules! VStack {
 #[macro_export]
 macro_rules! HStack {
     ( $($component:expr),+ $(,)? ) => {{
-        
-        Stack {
-            orientation: Orientation::Horizontal,
-            ...
-        }
+        let mut state = State::new();
+        let mut children = Vec::new();
+
+        let mut has_state = false;
+
+        $(
+            let child = $component.into_element();
+            match child {
+                ViewElement::TEMP_State(some_state) => {
+                    if has_state {
+                        panic!("State can only be declared once per view");
+                    } else {
+                        state = some_state;
+                        has_state = true;
+                    }
+                }
+
+                _ => children.push(child),
+            }
+        )+
+
+        Stack::new(Orientation::Horizontal, state, children)
     }};
 }

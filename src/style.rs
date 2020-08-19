@@ -40,3 +40,39 @@ theme AnotherOneInSameFile:
 
 
 */
+
+use crate::Color;
+
+pub const DEFAULT_THEME: Theme = Theme {
+    padding: Padding {
+        vertical: 10,
+        horizontal: 20,
+    },
+
+    colors: Colors {
+        primary: Color::ALMOST_WHITE,
+        secondary: Color::DARK_GRAY,
+        background: Color::AUBERGINE,
+        text: Color::ALMOST_WHITE,
+    }
+};
+
+////////////////////
+
+pub struct Padding {
+    pub vertical: u32,
+    pub horizontal: u32,
+}
+
+pub struct Colors {
+    pub primary: Color,
+    pub secondary: Color,
+    // accent: Color,
+    pub background: Color,
+    pub text: Color,
+}
+
+pub struct Theme {
+    pub padding: Padding,
+    pub colors: Colors,
+}

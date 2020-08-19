@@ -47,7 +47,10 @@ pub struct Quad {
 }
 
 impl Quad {
-    fn vertices_from_rect(window_dimensions: (u32, u32), top_left: (i32, i32), width: u32, height: u32) -> [QuadVertex; 4] {
+    fn vertices_from_rect(window_dimensions: (u32, u32), mut top_left: (i32, i32), width: u32, height: u32) -> [QuadVertex; 4] {
+        // Make top-left (0, 0) where down is +y-axis
+        top_left.1 = window_dimensions.1 as i32 - top_left.1;
+        
         let quad_top_left = super::screen_space_to_draw_space(top_left, window_dimensions);
         
         let top_right = (top_left.0 + width as i32, top_left.1);

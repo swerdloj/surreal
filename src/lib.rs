@@ -1,3 +1,4 @@
+// TODO: Go through and decide what needs to be pub, pub(crate), & private
 pub mod state;
 pub mod view;
 pub mod application;
@@ -5,6 +6,7 @@ pub mod widget;
 pub mod bounding_rect;
 pub mod render;
 pub mod timing;
+pub mod style;
 
 use crate::widget::Widget;
 use crate::view::View;
@@ -28,7 +30,7 @@ pub enum EventResponse {
 }
 
 /// f32 RGBA color
-// TODO: Consider making a Color! macro that accepts RGB, RGBA, hex, etc.
+// TODO: Consider making a `Color!` macro that accepts RGB, RGBA, hex, etc.
 // TODO: Should these be f64, or does it not matter?
 #[derive(Copy, Clone)]
 pub struct Color {
@@ -64,6 +66,13 @@ impl Into<wgpu::Color> for Color {
     fn into(self) -> wgpu::Color {
         wgpu::Color { r: self.r as f64, g: self.g as f64, b: self.b as f64, a: self.a as f64 }
     }
+}
+
+/// Element alignment
+pub enum Alignment {
+    Left,
+    Right,
+    Center,
 }
 
 /// Element orientation

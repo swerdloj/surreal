@@ -12,16 +12,22 @@ pub struct Button {
     bounds: BoundingRect,
     on_click: Option<Box<dyn FnMut(RefMut<State>)>>,
     // TEMP: Theme will handle this? Allow per-item theming?
-    color: crate::Color,
+    color: Option<crate::Color>,
 }
 
 impl Button {
     pub fn new(id: &'static str) -> Self {
+        let mut bounds = BoundingRect::new();
+
+        // TODO: Defaults should be from theme?
+        bounds.width = 150;
+        bounds.height = 75;
+
         Button {
             id,
-            bounds: BoundingRect::new(),
+            bounds,
             on_click: None,
-            color: crate::Color::WHITE,
+            color: None,
         }
     }
 
@@ -37,7 +43,7 @@ impl Button {
     }
 
     pub fn color(mut self, color: crate::Color) -> Self {
-        self.color = color;
+        self.color = Some(color);
         self
     }
 }
@@ -56,12 +62,27 @@ impl Widget for Button {
         }
     }
 
-    fn render(&self, renderer: &mut crate::render::ContextualRenderer) {
+    fn place(&mut self, x: i32, y: i32) {
+        self.bounds.x = x;
+        self.bounds.y = y;
+    }
+
+    fn render_size(&self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) -> (u32, u32) {
+        (self.bounds.width, self.bounds.height)
+    }
+
+    fn render(&self, renderer: &mut crate::render::ContextualRenderer, theme: &crate::style::Theme) {
+        let color = if let Some(color) = self.color {
+            color
+        } else {
+            theme.colors.primary
+        };
+        
         renderer.draw( crate::render::DrawCommand::Rect {
             top_left: self.bounds.top_left(),
             width: self.bounds.width,
             height: self.bounds.height,
-            color: self.color,
+            color,
         });
     }
 }

@@ -3,32 +3,19 @@ use crate::view::View;
 use sdl2::event::{Event, WindowEvent};
 use wgpu::*;
 
-pub struct sdl {
+struct sdl {
     pub context: sdl2::Sdl,
     video_subsystem: sdl2::VideoSubsystem,
     window: sdl2::video::Window,
 }
 
-pub struct gpu {
+struct gpu {
     render_surface: Surface,
     adapter: Adapter,
     pub device: Device,
     pub queue: Queue,
     sc_desc: SwapChainDescriptor,
     pub swap_chain: SwapChain,
-}
-
-// TODO: Replace this with render::Renderer
-// TODO: Make text rendering a part of RenderContext (e.g.: RenderContext::render_text())
-/// Context for rendering to frame
-pub struct RenderContext<'frame> {
-    pub frame: &'frame TextureView,
-    pub render_pass: RenderPass<'frame>,
-    pub command_buffers: &'frame mut Vec<CommandBuffer>,
-
-    pub frame_width: u32,
-    pub frame_height: u32,
-    pub format: TextureFormat,
 }
 
 pub struct Application {
@@ -38,10 +25,14 @@ pub struct Application {
     timer: crate::timing::Timer,
 
     fonts: Option<crate::IncludedFonts>,
+    global_theme: crate::style::Theme,
+
+    fit_window_to_view: bool,
 }
 
 impl Application {
-    // TODO: Accept theme here (which would include the fonts)
+    // TODO: Make width and height optional and use builder-patter for them
+    // then, tweak fit_window_to_view so window sizing is most convenient for users
     pub fn new(title: &str, width: u32, height: u32, fonts: crate::IncludedFonts) -> Self {
         let sdl = Self::init_sdl2(title, width, height);
         let gpu = futures::executor::block_on(
@@ -55,7 +46,24 @@ impl Application {
             gpu,
             timer,
             fonts: Some(fonts),
+            global_theme: crate::style::DEFAULT_THEME,
+            fit_window_to_view: false,
         }
+    }
+
+    // TODO: This
+    pub fn with_icon(mut self, icon: ()) -> Self {
+        todo!();
+    }
+
+    pub fn with_global_theme(mut self, theme: crate::style::Theme) -> Self {
+        self.global_theme = theme;
+        self
+    }
+
+    pub fn fit_window_to_view(mut self, fit: bool) -> Self {
+        self.fit_window_to_view = fit;
+        self
     }
 
     fn init_sdl2(title: &str, width: u32, height: u32) -> sdl {
@@ -127,14 +135,31 @@ impl Application {
         swap.unwrap()
     }
 
+    fn resize_swap_chain(&mut self, width: u32, height: u32) {
+        self.gpu.sc_desc.width = width;
+        self.gpu.sc_desc.height = height;
+
+        self.gpu.swap_chain = self.gpu.device.create_swap_chain(&self.gpu.render_surface, &self.gpu.sc_desc);
+    }
+
     pub fn run(&mut self, view: &mut dyn View) {
         let mut event_pump = self.sdl.context.event_pump().unwrap();
         
-        let text_renderer = crate::render::font::TextRenderer::from_fonts(
+        let mut text_renderer = crate::render::font::TextRenderer::from_fonts(
             self.take_fonts(), 
             &self.gpu.device, 
             crate::TEXTURE_FORMAT
         );
+
+        view.layout(&mut text_renderer, &self.global_theme);
+
+        // TODO: Account for when the view changes
+        if self.fit_window_to_view {
+            let (width, height) = (view.render_width(), view.render_height());
+            println!("Resizing window to view dimensions: {}x{}", width, height);
+            self.sdl.window.set_size(width, height).unwrap();
+            self.resize_swap_chain(width, height);
+        }
 
         let mut renderer = crate::render::Renderer::new(
             &self.gpu.device,
@@ -153,10 +178,7 @@ impl Application {
                     Event::Window { win_event: WindowEvent::Resized(width, height), .. } => {
                         println!("Window resized to {}x{}", &width, &height);
 
-                        self.gpu.sc_desc.width = width as u32;
-                        self.gpu.sc_desc.height = height as u32;
-
-                        self.gpu.swap_chain = self.gpu.device.create_swap_chain(&self.gpu.render_surface, &self.gpu.sc_desc);
+                        self.resize_swap_chain(width as u32, height as u32);
                     }
 
                     _ => {
@@ -193,37 +215,17 @@ impl Application {
             depth_stencil_attachment: None,
         });
 
-        // All information needed by the renderer
-        let ctx = crate::render::RenderContext {
+        // Bundle the renderer and context for user-side simplicity
+        let mut renderer_with_context = crate::render::ContextualRenderer {
+            renderer,
             device: &self.gpu.device,
             target: &render_target.view,
             encoder: &mut encoder,
-        };
-
-        // Bundle the renderer and context for user-side simplicity
-        let mut renderer_with_context = crate::render::ContextualRenderer {
-            ctx,
-            renderer,
             window_dimensions: (self.gpu.sc_desc.width, self.gpu.sc_desc.height),
         };
 
-        // Render the view
-        for element in view.children() {
-            use crate::ViewElement::*;
-            match element {
-                View(_view) => {
-                    // TODO: Render its contents
-                }
-                
-                Widget(widget) => {
-                    widget.render(&mut renderer_with_context);
-                }
-                
-                TEMP_State(_state) => {
-                    // This will be removed eventually
-                }
-            }
-        }
+        // Render the entire view
+        view.render(&mut renderer_with_context, &self.global_theme);
 
         // Does everything requested by the ContextualRenderer
         self.gpu.queue.submit(&[encoder.finish()]);

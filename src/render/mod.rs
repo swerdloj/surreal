@@ -69,10 +69,16 @@ pub enum DrawCommand {
     },
 }
 
-/// Bundles both RenderContext and Renderer into an easy-to-use construct
+/// Bundles Renderer with required context for an easy-to-use construct.
+///
+/// This is done to avoid needing to pass a context type to all `Renderer` functions 
+/// (and to all view element render-functions by extension).
 pub struct ContextualRenderer<'frame> {
-    pub ctx: RenderContext<'frame>,
     pub renderer: &'frame mut Renderer,
+
+    pub device: &'frame wgpu::Device,
+    pub target: &'frame wgpu::TextureView,
+    pub encoder: &'frame mut wgpu::CommandEncoder,
     pub window_dimensions: (u32, u32),
 }
 
@@ -80,9 +86,9 @@ impl<'frame> ContextualRenderer<'frame> {
     pub fn draw(&mut self, command: DrawCommand) {
         self.renderer.draw(
             command, 
-            self.ctx.device,
-            self.ctx.target,
-            self.ctx.encoder,
+            self.device,
+            self.target,
+            self.encoder,
             self.window_dimensions,
         );
     }
@@ -90,13 +96,6 @@ impl<'frame> ContextualRenderer<'frame> {
     pub fn get_font_id(&self, alias: &str) -> wgpu_glyph::FontId {
         self.renderer.text_renderer.get_font_id(alias)
     }
-}
-
-/// Contains information needed to do rendering
-pub struct RenderContext<'frame> {
-    pub device: &'frame wgpu::Device,
-    pub target: &'frame wgpu::TextureView,
-    pub encoder: &'frame mut wgpu::CommandEncoder,
 }
 
 /// Contains functionality for rendering to a target
@@ -122,7 +121,7 @@ impl Renderer {
         let quad = quad::Quad::new(
             device,
             &quad_bind_group_layout,
-            (10, 10),
+            (1, 1),
             (0, 0),
             0,
             0,
