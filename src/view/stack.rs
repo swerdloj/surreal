@@ -32,6 +32,11 @@ impl super::View for Stack {
         let mut current_y = 0;
         let mut view_width = 0;
         let mut view_height = 0;
+
+        match self.orientation {
+            Orientation::Horizontal => current_y += theme.padding.vertical,
+            Orientation::Vertical => current_x += theme.padding.horizontal,
+        }
         
         for child in &mut self.children {
             match self.orientation {
@@ -77,12 +82,12 @@ impl super::View for Stack {
 
         match self.orientation {
             Orientation::Vertical => {
-                self.bounds.width = view_width;
-                self.bounds.height = current_y;
+                self.bounds.width = view_width + 2*theme.padding.horizontal;
+                self.bounds.height = current_y + theme.padding.vertical;
             }
             Orientation::Horizontal => {
-                self.bounds.width = current_x;
-                self.bounds.height = view_height;
+                self.bounds.width = current_x + theme.padding.horizontal;
+                self.bounds.height = view_height + 2*theme.padding.vertical;
             }
         }
     }

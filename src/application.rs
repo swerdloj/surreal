@@ -27,6 +27,7 @@ pub struct Application {
     fonts: Option<crate::IncludedFonts>,
     global_theme: crate::style::Theme,
 
+    resizable: bool,
     fit_window_to_view: bool,
 }
 
@@ -47,8 +48,18 @@ impl Application {
             timer,
             fonts: Some(fonts),
             global_theme: crate::style::DEFAULT_THEME,
+
+            resizable: false,
             fit_window_to_view: false,
         }
+    }
+
+    pub fn resizable(mut self, resizable: bool) -> Self {
+        // TODO: Find how to call this https://wiki.libsdl.org/SDL_SetWindowResizable
+        // self.window...
+
+        self.resizable = resizable;
+        self
     }
 
     // TODO: This
@@ -72,7 +83,7 @@ impl Application {
 
         let window = video_subsystem.window(title, width, height)
             .position_centered()
-            .resizable()
+            // .resizable()
             .build()
             .unwrap();
 

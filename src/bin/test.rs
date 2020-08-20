@@ -21,6 +21,8 @@ fn main() {
             test: u32 = 0,
         },
 
+        Button::new("above_text"),
+
         Text::new("text")
             .text("This is a text widget with some text in it")
             .scale(30.0),
@@ -33,6 +35,11 @@ fn main() {
                 println!("Presses: {}", test);
             })
             .color(Color::DARK_GRAY),
+
+        Text::new("more_text")
+            .text("More text here")
+            .color(Color::new(0.4, 0.6, 0.8, 1.0))
+            .scale(50.0),
 
         Button::new("test2"),
     };
