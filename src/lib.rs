@@ -16,8 +16,12 @@ pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormS
 
 // Re-exports
 // TODO: Identify the important items to place here
-pub use render::font::IncludedFonts;
+pub mod prelude {
+    pub use crate::render::font::IncludedFonts;
+}
 
+// TEMP:
+pub use render::font::IncludedFonts;
 
 pub enum EventResponse {
     /// Event will be consumed, preventing it from propogating any further.

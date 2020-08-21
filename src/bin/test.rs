@@ -42,6 +42,8 @@ fn main() {
             .scale(50.0),
 
         Button::new("test2"),
+        Button::new("test3")
+            .color(Color::new(0.8, 0.1, 0.1, 1.0)),
     };
 
     // NOTE: The extra '../' here is because this is in the '/bin' folder

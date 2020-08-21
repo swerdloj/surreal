@@ -77,6 +77,7 @@ pub struct ContextualRenderer<'frame> {
     pub renderer: &'frame mut Renderer,
 
     pub device: &'frame wgpu::Device,
+    pub queue: &'frame wgpu::Queue,
     pub target: &'frame wgpu::TextureView,
     pub encoder: &'frame mut wgpu::CommandEncoder,
     pub window_dimensions: (u32, u32),
@@ -87,6 +88,7 @@ impl<'frame> ContextualRenderer<'frame> {
         self.renderer.draw(
             command, 
             self.device,
+            self.queue,
             self.target,
             self.encoder,
             self.window_dimensions,
@@ -146,7 +148,7 @@ impl Renderer {
         );
     }
 
-    pub fn draw(&mut self, command: DrawCommand, device: &wgpu::Device, target: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, window_dimensions: (u32, u32)) {
+    pub fn draw(&mut self, command: DrawCommand, device: &wgpu::Device, queue: &wgpu::Queue, target: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, window_dimensions: (u32, u32)) {
         match command {
             DrawCommand::Rect { top_left, width, height, color } => {
                 self.quad.update_vertices(device, window_dimensions, top_left, width, height);
@@ -175,9 +177,10 @@ impl Renderer {
                 wgpu::RenderPassColorAttachmentDescriptor {
                     attachment: target,
                     resolve_target: None,
-                    load_op: wgpu::LoadOp::Load,
-                    store_op: wgpu::StoreOp::Store,
-                    clear_color: crate::Color::CLEAR.into(),
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: true,
+                    },
                 },
             ],
             depth_stencil_attachment: None,
