@@ -1,15 +1,7 @@
 #[macro_use]
 extern crate surreal;
 
-// TODO: Create a simple prelude for users to important whatever is needed
-use surreal::application::Application;
-use surreal::state::State;
-use surreal::view::stack::Stack;
-use surreal::{IntoViewElement, Orientation, ViewElement};
-use surreal::widget::button::Button;
-use surreal::widget::text::Text;
-use surreal::bounding_rect::BoundingRect;
-use surreal::Color;
+use surreal::prelude::*;
 
 fn main() {
     // TODO: See whether state can be shared between widgets somehow
@@ -42,8 +34,8 @@ fn main() {
             .scale(50.0),
 
         Button::new("test2"),
-        Button::new("test3")
-            .color(Color::new(0.8, 0.1, 0.1, 1.0)),
+
+        Button::new("test3"),
     };
 
     // NOTE: The extra '../' here is because this is in the '/bin' folder
@@ -54,8 +46,11 @@ fn main() {
     // TODO: This + pass to app
     // let theme = include_theme!("../../res/themes/default.theme")
 
-    let mut app = Application::new("Test", 800, 600, fonts)
-        .fit_window_to_view(true);
+    let mut app = Application::new(ApplicationSettings {
+        title: "Surreal Test",
+        fonts,
+        ..Default::default()
+    });
 
     app.run(&mut view);
 }

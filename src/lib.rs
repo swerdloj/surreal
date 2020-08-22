@@ -1,27 +1,40 @@
 // TODO: Go through and decide what needs to be pub, pub(crate), & private
-pub mod state;
-pub mod view;
 pub mod application;
-pub mod widget;
-pub mod bounding_rect;
-pub mod render;
-pub mod timing;
+pub mod state;
 pub mod style;
 
-use crate::widget::Widget;
-use crate::view::View;
+pub mod view;
+pub mod widget;
+pub mod component;
+
+pub mod render;
+pub mod bounding_rect;
+
+pub mod timing;
 
 pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
 
 
-// Re-exports
-// TODO: Identify the important items to place here
+/// Re-exports for easy library import via `use surreal::prelude::*;`
 pub mod prelude {
-    pub use crate::render::font::IncludedFonts;
+    pub use crate::{
+        application::{Application, ApplicationSettings},
+        state::State,
+        widget::*,
+        view::*,
+        render::font::IncludedFonts,
+        Color,
+        EventResponse,
+        Alignment,
+        Orientation,
+        ViewElement,
+        IntoViewElement,
+    };
 }
 
-// TEMP:
-pub use render::font::IncludedFonts;
+
+use crate::widget::Widget;
+use crate::view::View;
 
 pub enum EventResponse {
     /// Event will be consumed, preventing it from propogating any further.

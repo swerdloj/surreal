@@ -18,69 +18,32 @@ struct gpu {
     pub swap_chain: SwapChain,
 }
 
-fn init_sdl2(title: &str, width: u32, height: u32) -> sdl {
-    let sdl2_context = sdl2::init().unwrap();
-    let video_subsystem = sdl2_context.video().unwrap();
-
-    let mut window = video_subsystem.window(title, width, height)
-        .position_centered()
-        .resizable()
-        .build()
-        .unwrap();
-
-    // NOTE: SwapChain panics when a surface dimensions is 1
-    // Resizing a window to be that small doesn't even make sense anyway
-    // TODO: Minumum size should be equal to a title-bar once implemented
-    // Title-bar contains the minimize, maximize, and exit buttons
-    window.set_minimum_size(10, 10).unwrap();
-
-    sdl {
-        context: sdl2_context,
-        video_subsystem,
-        window,
-    }
+// TODO: I don't know whether I prefer this or builder-style
+// Decide after settings are finalized whether this is relevant
+pub struct ApplicationSettings {
+    pub title: &'static str,
+    pub width: u32,
+    pub height: u32,
+    pub global_theme: crate::style::Theme,
+    // TODO: Integrate image crate
+    pub app_icon: (),
+    pub fonts: crate::render::font::IncludedFonts,
+    pub fit_window_to_view: bool,
+    pub resizable: bool,
 }
 
-async fn init_wgpu(window: &sdl2::video::Window) -> gpu {
-    let (width, height) = window.size();
-
-    let instance = Instance::new(BackendBit::PRIMARY);
-
-    let render_surface = unsafe { instance.create_surface(window) };
-
-    let adapter = instance.request_adapter(&RequestAdapterOptions {
-        // TODO: Allow user to choose GPU
-        power_preference: PowerPreference::HighPerformance,
-        compatible_surface: Some(&render_surface),
-    }).await.unwrap();
-
-    let (device, queue) = adapter.request_device(
-        &DeviceDescriptor {
-            features: Features::default(),
-            limits: Limits::default(),
-            shader_validation: true,
-        }, 
-        None,
-    ).await.unwrap();
-
-    let sc_desc = SwapChainDescriptor {
-        usage: TextureUsage::OUTPUT_ATTACHMENT,
-        format: crate::TEXTURE_FORMAT,
-        width,
-        height,
-        // TODO: Allow user to toggle vsync
-        present_mode: PresentMode::Fifo,
-    };
-
-    let swap_chain = device.create_swap_chain(&render_surface, &sc_desc);
-
-    gpu {
-        render_surface,
-        adapter,
-        device,
-        queue,
-        sc_desc,
-        swap_chain,
+impl Default for ApplicationSettings {
+    fn default() -> Self {
+        Self {
+            title: "Surreal Application",
+            width: 800,
+            height: 600,
+            global_theme: crate::style::DEFAULT_THEME,
+            app_icon: (),
+            fonts: Vec::new(),
+            fit_window_to_view: true,
+            resizable: true,
+        }
     }
 }
 
@@ -90,7 +53,7 @@ pub struct Application {
 
     timer: crate::timing::Timer,
 
-    fonts: Option<crate::IncludedFonts>,
+    fonts: Option<crate::render::font::IncludedFonts>,
     global_theme: crate::style::Theme,
 
     fit_window_to_view: bool,
@@ -100,8 +63,8 @@ pub struct Application {
 impl Application {
     // TODO: Set options using a type like ApplicationSettings
     // Then, tweak fit_window_to_view so window sizing is most convenient for users
-    pub fn new(title: &str, width: u32, height: u32, fonts: crate::IncludedFonts) -> Self {
-        let sdl = init_sdl2(title, width, height);
+    pub fn new(settings: ApplicationSettings) -> Self {
+        let sdl = init_sdl2(settings.title, settings.width, settings.height, settings.resizable);
         let gpu = futures::executor::block_on(
             init_wgpu(&sdl.window)
         );
@@ -112,31 +75,16 @@ impl Application {
             sdl,
             gpu,
             timer,
-            fonts: Some(fonts),
+            fonts: Some(settings.fonts),
             global_theme: crate::style::DEFAULT_THEME,
 
-            fit_window_to_view: false,
+            fit_window_to_view: settings.fit_window_to_view,
             is_minimized: false,
         }
     }
 
-    // TODO: Integrate image library
-    pub fn with_icon(mut self, icon: ()) -> Self {
-        todo!();
-    }
-
-    pub fn with_global_theme(mut self, theme: crate::style::Theme) -> Self {
-        self.global_theme = theme;
-        self
-    }
-
-    pub fn fit_window_to_view(mut self, fit: bool) -> Self {
-        self.fit_window_to_view = fit;
-        self
-    }
-
     // FIXME: This isn't the best solution, but I don't want to pass fonts into `run`
-    fn take_fonts(&mut self) -> crate::IncludedFonts {
+    fn take_fonts(&mut self) -> crate::render::font::IncludedFonts {
         if let Some(_fonts) = &self.fonts {} else {
             panic!("Fonts were already moved")
         }
@@ -193,20 +141,16 @@ impl Application {
                         self.resize_swap_chain(width as u32, height as u32);
                     }
 
-                    Event::Window { win_event: WindowEvent::Minimized, .. } => {
-                        println!("Minimizing");
-                        self.is_minimized = true;
-                    }
+                    Event::Window { win_event: WindowEvent::Minimized, .. } => self.is_minimized = true,
 
-                    Event::Window { win_event: WindowEvent::Restored, .. } => {
-                        println!("Restored");
-                        self.is_minimized = false;
-                    }
+                    Event::Window { win_event: WindowEvent::Restored, .. } => self.is_minimized = false,
 
                     _ => {
                         // println!("Unhandled event: {:?}", event);
                     }
                 }
+
+                view.propogate_event(&event);
             }
 
             // FIXME: wgpu panics at "Outdated" when the render surface changes (on window minimize)
@@ -257,5 +201,79 @@ impl Application {
 
         // Does everything requested by the ContextualRenderer
         self.gpu.queue.submit(Some(encoder.finish()));
+    }
+}
+
+fn init_sdl2(title: &str, width: u32, height: u32, resizable: bool) -> sdl {
+    let sdl2_context = sdl2::init().unwrap();
+    let video_subsystem = sdl2_context.video().unwrap();
+
+    // FIXME: Ugly solution
+    let mut window = if resizable {
+        video_subsystem.window(title, width, height)
+            .position_centered()
+            .resizable()
+            .build()
+            .unwrap()
+    } else {
+        video_subsystem.window(title, width, height)
+            .position_centered()
+            .build()
+            .unwrap()
+    };
+
+    // NOTE: SwapChain panics when a surface dimensions is 1
+    // Resizing a window to be that small doesn't even make sense anyway
+    // TODO: Minumum size should be equal to a title-bar once implemented
+    // Title-bar contains the minimize, maximize, and exit buttons
+    window.set_minimum_size(10, 10).unwrap();
+
+    sdl {
+        context: sdl2_context,
+        video_subsystem,
+        window,
+    }
+}
+
+async fn init_wgpu(window: &sdl2::video::Window) -> gpu {
+    let (width, height) = window.size();
+
+    let instance = Instance::new(BackendBit::PRIMARY);
+
+    let render_surface = unsafe { instance.create_surface(window) };
+
+    let adapter = instance.request_adapter(&RequestAdapterOptions {
+        // TODO: Allow user to choose GPU
+        power_preference: PowerPreference::HighPerformance,
+        compatible_surface: Some(&render_surface),
+    }).await.unwrap();
+
+    let (device, queue) = adapter.request_device(
+        &DeviceDescriptor {
+            features: Features::empty(),
+            limits: Limits::default(),
+            shader_validation: false,
+        }, 
+        None,
+    ).await.unwrap();
+
+    let sc_desc = SwapChainDescriptor {
+        usage: TextureUsage::OUTPUT_ATTACHMENT,
+        format: crate::TEXTURE_FORMAT,
+        width,
+        height,
+        // TODO: Allow user to toggle vsync
+        present_mode: PresentMode::Fifo,
+    };
+
+    let swap_chain = device.create_swap_chain(&render_surface, &sc_desc);
+
+    gpu {
+        render_surface,
+        adapter,
+        device,
+        queue,
+        sc_desc,
+        swap_chain,
     }
 }

@@ -13,6 +13,8 @@ pub struct Button {
     on_click: Option<Box<dyn FnMut(RefMut<State>)>>,
     // TEMP: Theme will handle this? Allow per-item theming?
     color: Option<crate::Color>,
+
+    mouse_down_in_bounds: bool,
 }
 
 impl Button {
@@ -28,6 +30,7 @@ impl Button {
             bounds,
             on_click: None,
             color: None,
+            mouse_down_in_bounds: false,
         }
     }
 
@@ -53,9 +56,24 @@ impl Widget for Button {
         self.id
     }
 
-    fn handle_event(&mut self, event: &Event) -> crate::EventResponse {
+    fn handle_event(&mut self, event: &Event, state: RefMut<State>) -> crate::EventResponse {
         match event {
-            Event::MouseButtonUp { mouse_btn: sdl2::mouse::MouseButton::Left, .. } => {
+            Event::MouseButtonDown { mouse_btn: sdl2::mouse::MouseButton::Left, x, y, .. } => {
+                if self.bounds.contains(*x, *y) {
+                    self.mouse_down_in_bounds = true;
+                }
+
+                crate::EventResponse::Consume
+            }
+
+            Event::MouseButtonUp { mouse_btn: sdl2::mouse::MouseButton::Left, x, y, .. } => {
+                if self.mouse_down_in_bounds && self.bounds.contains(*x, *y) {
+                    if let Some(cb) = &mut self.on_click {
+                        (cb)(state);
+                    }
+                }
+                
+                self.mouse_down_in_bounds = false;
                 crate::EventResponse::Consume
             }
             _ => crate::EventResponse::None,
@@ -67,7 +85,7 @@ impl Widget for Button {
         self.bounds.y = y;
     }
 
-    fn render_size(&self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) -> (u32, u32) {
+    fn render_size(&self, _text_renderer: &mut crate::render::font::TextRenderer, _theme: &crate::style::Theme) -> (u32, u32) {
         (self.bounds.width, self.bounds.height)
     }
 

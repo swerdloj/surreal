@@ -1,11 +1,12 @@
-use crate::state::State;
+use crate::state::{Shared, State};
 use crate::{Orientation, ViewElement};
 
+use std::rc::Rc;
 use std::cell::RefCell;
 
 pub struct Stack {
     orientation: Orientation,
-    state: RefCell<State>,
+    state: Shared<State>,
     // TODO: Children should be an ordered hashmap of (id -> element)
     // This would also enforce unique element ids
     children: Vec<ViewElement>,
@@ -17,7 +18,7 @@ impl Stack {
     pub fn new(orientation: Orientation, state: State, children: Vec<ViewElement>) -> Self {
         Stack {
             orientation,
-            state: RefCell::new(state),
+            state: Rc::new(RefCell::new(state)),
             children,
 
             bounds: crate::bounding_rect::BoundingRect::new(),
@@ -26,6 +27,10 @@ impl Stack {
 }
 
 impl super::View for Stack {
+    fn state(&self) -> Shared<State> {
+        self.state.clone()
+    }
+
     // TODO: Account for view padding
     fn layout(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
         let mut current_x = 0;

@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::any::Any;
 
-// use std::cell::{RefCell, RefMut};
-
 macro_rules! make_get_type {
     ( $($t:ty), + ) => {
         paste::paste! {
@@ -14,6 +12,11 @@ macro_rules! make_get_type {
             )+
         }
     };
+}
+
+pub type Shared<T> = std::rc::Rc<std::cell::RefCell<T>>;
+pub fn make_shared<T>(value: T) -> Shared<T> {
+    std::rc::Rc::new(std::cell::RefCell::new(value))
 }
 
 #[derive(Debug)]

@@ -1,10 +1,23 @@
 use wgpu::*;
 use wgpu::util::*;
 
+pub mod primitive {
+    pub const RECTANGLE: u32 = 0;
+    pub const ROUNDED_RECTANGLE: u32 = 1;
+    pub const CIRCLE: u32 = 2;
+}
+
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct Uniforms {
     pub color: cgmath::Vector4<f32>,
+    pub window_dimensions: cgmath::Vector2<f32>,
+    pub center: cgmath::Vector2<f32>,
+    pub primitive_type: u32,
+    pub circle_radius: f32,
+    pub primitive_width: f32,
+    pub primitive_height: f32,
+    pub rounded_rect_roundness: f32,
 }
 
 unsafe impl bytemuck::Pod for Uniforms {}
@@ -87,7 +100,14 @@ impl Quad {
         });
 
         let uniform_data = Uniforms {
+            window_dimensions: (window_dimensions. 0 as f32, window_dimensions.1 as f32).into(),
             color: (1.0, 0.0, 0.0, 1.0).into(),
+            primitive_type: primitive::RECTANGLE,
+            center: (0.0, 0.0).into(),
+            circle_radius: 0.0,
+            primitive_width: 0.0,
+            primitive_height: 0.0,
+            rounded_rect_roundness: 0.0,
         };
 
         let uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {

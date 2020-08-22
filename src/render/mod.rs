@@ -67,6 +67,13 @@ pub enum DrawCommand {
         height: u32,
         color: crate::Color,
     },
+    RoundedRect {
+        top_left: (i32, i32),
+        width: u32,
+        height: u32,
+        roundness: f32,
+        color: crate::Color,
+    }
 }
 
 /// Bundles Renderer with required context for an easy-to-use construct.
@@ -152,11 +159,38 @@ impl Renderer {
         match command {
             DrawCommand::Rect { top_left, width, height, color } => {
                 self.quad.update_vertices(device, window_dimensions, top_left, width, height);
-                self.quad.update_uniforms(
-                    device, 
-                    encoder,
-                    quad::Uniforms {
+                self.quad.update_uniforms(device, encoder,quad::Uniforms {
+                    window_dimensions: (window_dimensions.0 as f32, window_dimensions.1 as f32).into(),
                     color: color.as_array().into(),
+                    primitive_type: quad::primitive::RECTANGLE,
+                    center: (0.0, 0.0).into(),
+                    circle_radius: 0.0,
+                    primitive_width: 0.0,
+                    primitive_height: 0.0,
+                    rounded_rect_roundness: 0.0,
+                });
+
+                let mut render_pass = Self::create_render_pass(encoder, target);
+
+                render_pass.set_pipeline(&self.quad_render_pipeline);
+                self.quad.render(&mut render_pass);
+            }
+
+            // TODO: This needs a lot of work. Same with shader.
+            DrawCommand::RoundedRect { top_left, width, height, roundness, color } => {
+                self.quad.update_vertices(device, window_dimensions, top_left, width, height);
+                self.quad.update_uniforms(device, encoder, quad::Uniforms {
+                    window_dimensions: (window_dimensions.0 as f32, window_dimensions.1 as f32).into(),
+                    color: color.as_array().into(),
+                    primitive_type: quad::primitive::ROUNDED_RECTANGLE,
+                    center: (
+                        (((top_left.0 + width as i32 / 2) as f32 / window_dimensions.0 as f32 - 0.5) * 2.0) * window_dimensions.0 as f32 / window_dimensions.1 as f32, 
+                        ((top_left.1 + height as i32 / 2) as f32 / window_dimensions.1 as f32 - 0.5) * 2.0,
+                    ).into(),
+                    circle_radius: 0.0,
+                    primitive_width: (width as f32 / window_dimensions.0 as f32) * window_dimensions.0 as f32 / window_dimensions.1 as f32,
+                    primitive_height: (height as f32 / window_dimensions.1 as f32),
+                    rounded_rect_roundness: roundness,
                 });
 
                 let mut render_pass = Self::create_render_pass(encoder, target);

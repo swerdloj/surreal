@@ -1,10 +1,13 @@
 pub mod button;
 pub mod text;
 
+pub use button::Button;
+pub use text::Text;
+
 pub trait Widget : crate::IntoViewElement {
     fn id(&self) -> &'static str;
 
-    fn handle_event(&mut self, _event: &sdl2::event::Event) -> crate::EventResponse {
+    fn handle_event(&mut self, _event: &sdl2::event::Event, _state: std::cell::RefMut<crate::state::State>) -> crate::EventResponse {
         crate::EventResponse::None
     }
 
