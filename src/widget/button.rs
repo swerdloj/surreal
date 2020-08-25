@@ -11,9 +11,9 @@ pub struct Button {
     id: &'static str,
     bounds: BoundingRect,
     on_click: Option<Box<dyn FnMut(RefMut<State>)>>,
-    // TEMP: Theme will handle this? Allow per-item theming?
     color: Option<crate::Color>,
 
+    // Register click only when mouse-down *and* mouse-up occur within bounds
     mouse_down_in_bounds: bool,
 }
 
@@ -21,7 +21,7 @@ impl Button {
     pub fn new(id: &'static str) -> Self {
         let mut bounds = BoundingRect::new();
 
-        // TODO: Defaults should be from theme?
+        // TODO: Defaults should be from theme
         bounds.width = 150;
         bounds.height = 75;
 
@@ -89,14 +89,14 @@ impl Widget for Button {
         (self.bounds.width, self.bounds.height)
     }
 
-    fn render(&self, renderer: &mut crate::render::ContextualRenderer, theme: &crate::style::Theme) {
+    fn render(&self, renderer: &mut crate::render::ContextualRenderer, theme: &crate::style::Theme) {        
         let color = if let Some(color) = self.color {
             color
         } else {
             theme.colors.primary
         };
-        
-        renderer.draw( crate::render::DrawCommand::Rect {
+
+        renderer.draw(crate::render::DrawCommand::Rect {
             top_left: self.bounds.top_left(),
             width: self.bounds.width,
             height: self.bounds.height,

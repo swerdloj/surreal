@@ -43,6 +43,8 @@ theme AnotherOneInSameFile:
 
 use crate::Color;
 
+// TEMP: Import this from a file
+// TODO: Create theme hot-reloading feature
 pub const DEFAULT_THEME: Theme = Theme {
     padding: Padding {
         vertical: 10,

@@ -36,6 +36,8 @@ fn main() {
         Button::new("test2"),
 
         Button::new("test3"),
+        Button::new("test4")
+            .color(Color::new(0.2, 0.3, 0.8, 1.0)),
     };
 
     // NOTE: The extra '../' here is because this is in the '/bin' folder

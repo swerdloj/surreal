@@ -61,6 +61,11 @@ pub fn screen_space_to_draw_space(point: (i32, i32), window_dimensions: (u32, u3
 
 pub enum DrawCommand {
     Text(glyph_brush::OwnedSection),
+    Circle {
+        center: (i32, i32),
+        radius: u32,
+        color: crate::Color,
+    },
     Rect {
         top_left: (i32, i32),
         width: u32,
@@ -73,7 +78,7 @@ pub enum DrawCommand {
         height: u32,
         roundness: f32,
         color: crate::Color,
-    }
+    },
 }
 
 /// Bundles Renderer with required context for an easy-to-use construct.
@@ -84,6 +89,7 @@ pub struct ContextualRenderer<'frame> {
     pub renderer: &'frame mut Renderer,
 
     pub device: &'frame wgpu::Device,
+    // TODO: See whether `queue.write_buffer` can be ordered properly
     pub queue: &'frame wgpu::Queue,
     pub target: &'frame wgpu::TextureView,
     pub encoder: &'frame mut wgpu::CommandEncoder,
@@ -155,13 +161,32 @@ impl Renderer {
         );
     }
 
-    pub fn draw(&mut self, command: DrawCommand, device: &wgpu::Device, queue: &wgpu::Queue, target: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, window_dimensions: (u32, u32)) {
+    pub fn draw(&mut self, command: DrawCommand, device: &wgpu::Device, _queue: &wgpu::Queue, target: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, window_dimensions: (u32, u32)) {
         match command {
+            DrawCommand::Circle {center, radius, color} => {
+                self.quad.update_vertices(device, window_dimensions, (center.0 - radius as i32, center.1 - radius as i32), radius*2, radius*2);
+                self.quad.update_uniforms(device, encoder, quad::Uniforms {
+                    color: color.into(),
+                    window_dimensions: (window_dimensions.0 as f32, window_dimensions.1 as f32).into(),
+                    center: (center.0 as f32, center.1 as f32).into(),
+                    primitive_type: quad::primitive::CIRCLE,
+                    circle_radius: radius as f32,
+                    primitive_width: 0.0,
+                    primitive_height: 0.0,
+                    rounded_rect_roundness: 0.0,
+                });
+
+                let mut render_pass = Self::create_render_pass(encoder, target);
+
+                render_pass.set_pipeline(&self.quad_render_pipeline);
+                self.quad.render(&mut render_pass);
+            }
+
             DrawCommand::Rect { top_left, width, height, color } => {
                 self.quad.update_vertices(device, window_dimensions, top_left, width, height);
                 self.quad.update_uniforms(device, encoder,quad::Uniforms {
                     window_dimensions: (window_dimensions.0 as f32, window_dimensions.1 as f32).into(),
-                    color: color.as_array().into(),
+                    color: color.into(),
                     primitive_type: quad::primitive::RECTANGLE,
                     center: (0.0, 0.0).into(),
                     circle_radius: 0.0,
@@ -181,7 +206,7 @@ impl Renderer {
                 self.quad.update_vertices(device, window_dimensions, top_left, width, height);
                 self.quad.update_uniforms(device, encoder, quad::Uniforms {
                     window_dimensions: (window_dimensions.0 as f32, window_dimensions.1 as f32).into(),
-                    color: color.as_array().into(),
+                    color: color.into(),
                     primitive_type: quad::primitive::ROUNDED_RECTANGLE,
                     center: (
                         (((top_left.0 + width as i32 / 2) as f32 / window_dimensions.0 as f32 - 0.5) * 2.0) * window_dimensions.0 as f32 / window_dimensions.1 as f32, 

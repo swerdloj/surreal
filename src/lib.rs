@@ -79,6 +79,12 @@ impl Color {
     }
 }
 
+impl Into<cgmath::Vector4<f32>> for Color {
+    fn into(self) -> cgmath::Vector4<f32> {
+        cgmath::Vector4::new(self.r, self.g, self.b, self.a)
+    }
+}
+
 impl Into<wgpu::Color> for Color {
     fn into(self) -> wgpu::Color {
         wgpu::Color { r: self.r as f64, g: self.g as f64, b: self.b as f64, a: self.a as f64 }
