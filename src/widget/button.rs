@@ -96,10 +96,18 @@ impl Widget for Button {
             theme.colors.primary
         };
 
-        renderer.draw(crate::render::DrawCommand::Rect {
+        // renderer.draw(crate::render::DrawCommand::Rect {
+        //     top_left: self.bounds.top_left(),
+        //     width: self.bounds.width,
+        //     height: self.bounds.height,
+        //     color,
+        // });
+
+        renderer.draw(crate::render::DrawCommand::RoundedRect {
             top_left: self.bounds.top_left(),
             width: self.bounds.width,
             height: self.bounds.height,
+            roundness_percent: 50.0,
             color,
         });
     }

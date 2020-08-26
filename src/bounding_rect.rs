@@ -21,9 +21,9 @@ impl BoundingRect {
     }
 
     // TODO: This + require use of this
-    pub fn set_bounds(&mut self, x: i32, y: i32, width: u32, height: u32) {
+    // pub fn set_bounds(&mut self, x: i32, y: i32, width: u32, height: u32) {
 
-    }
+    // }
 
     // TODO: Store this and calculate automatically. Require user to 
     // adjust BoundingRect via `rect.set_bounds()` which sets center

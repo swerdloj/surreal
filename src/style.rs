@@ -61,6 +61,11 @@ pub const DEFAULT_THEME: Theme = Theme {
 
 ////////////////////
 
+pub struct Theme {
+    pub padding: Padding,
+    pub colors: Colors,
+}
+
 pub struct Padding {
     pub vertical: u32,
     pub horizontal: u32,
@@ -72,9 +77,4 @@ pub struct Colors {
     // accent: Color,
     pub background: Color,
     pub text: Color,
-}
-
-pub struct Theme {
-    pub padding: Padding,
-    pub colors: Colors,
 }

@@ -34,6 +34,12 @@ pub trait View : crate::IntoViewElement {
                 }
             }
         }
+
+        // FIXME: All text needs to be drawn at the same time
+        // This function should be called only one time per frame
+        // This is so wgpu_glyph can cache the text, meaning this call should not be made inside `View`
+        // Using individual draw calls per `Section` raises CPU usage from <1% to >5% (>22% in debug build)
+        renderer.renderer.text_renderer.render_queue(renderer.device, renderer.target, renderer.encoder, renderer.window_dimensions.0, renderer.window_dimensions.1);
     }
 
     fn propogate_event(&mut self, event: &sdl2::event::Event) {

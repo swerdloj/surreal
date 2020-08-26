@@ -45,8 +45,9 @@ void main() {
     } 
 
     else if (type == ROUNDED_RECT) {
-        // TODO: This
         float dist = sd_rounded_rect(gl_FragCoord.xy, primitive_center, primitive_width, primitive_height, rounded_rect_roundness);
+        // TEMP: See below
+        dist += min(0.5, rounded_rect_roundness);
         out_color = vec4(color.rgb, alpha_from_dist(dist));
         return;
     } 
@@ -54,8 +55,8 @@ void main() {
     else if (type == CIRCLE) {
         float dist = sd_circle(gl_FragCoord.xy, primitive_center, circle_radius);
         // FIXME: Without this, the top and left sides look aliased (or cut off?)
-        // This seems to be because I used a rect to represent the circle (rounding issue)
-        // Once I actually implement circles, this needs to be double-checked
+        // This looks it would be solved by adding an extra pixel to each of the
+        // rendering quad's dimensions (for anti-aliasing)
         dist += 0.5;
         out_color = vec4(color.rgb, alpha_from_dist(dist));
         return;

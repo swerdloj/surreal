@@ -90,7 +90,6 @@ impl TextRenderer {
 
     /// Returns the (width, height) of the text's bounding rect
     pub fn get_section_bounds(&mut self, section: wgpu_glyph::Section) -> (u32, u32) {
-        // TODO: Find a convenient way to size text using the following
         use wgpu_glyph::GlyphCruncher;
         let bounds = self.brush.glyph_bounds(section);
         
@@ -103,10 +102,7 @@ impl TextRenderer {
         }
     }
 
-    // TODO: Auto-generate Section from formatted text (like markdown)
-    pub fn render_section(&mut self, device: &wgpu::Device, target_texture_view: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, target_width: u32, target_height: u32, section: glyph_brush::OwnedSection) {       
-        self.brush.queue(&section);
-
+    pub fn render_queue(&mut self, device: &wgpu::Device, target_texture_view: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, target_width: u32, target_height: u32) {
         self.brush.draw_queued(
             device,
             encoder,
@@ -114,6 +110,11 @@ impl TextRenderer {
             target_width,
             target_height,
         ).unwrap();
+    }
+
+    // TODO: Auto-generate Section from formatted text (like markdown)
+    pub fn queue_section(&mut self, section: glyph_brush::OwnedSection) {       
+        self.brush.queue(&section);
     }
 }
 

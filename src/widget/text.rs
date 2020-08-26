@@ -52,7 +52,7 @@ impl Widget for Text {
         self.bounds.y = y;
     }
 
-    fn render_size(&self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) -> (u32, u32) {
+    fn render_size(&self, text_renderer: &mut crate::render::font::TextRenderer, _theme: &crate::style::Theme) -> (u32, u32) {
         // TODO: Same as in `render`: section can be saved for later use
 
         let text = wgpu_glyph::Text::new(&self.text)

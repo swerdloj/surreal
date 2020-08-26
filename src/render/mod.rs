@@ -58,25 +58,29 @@ pub fn screen_space_to_draw_space(point: (i32, i32), window_dimensions: (u32, u3
     )
 }
 
-
+/// Objects able to be drawn by the renderer
 pub enum DrawCommand {
+    /// Text as represented by a layed-out Section
     Text(glyph_brush::OwnedSection),
+    /// A simple circle
     Circle {
         center: (i32, i32),
         radius: u32,
         color: crate::Color,
     },
+    /// A simple rectangle
     Rect {
         top_left: (i32, i32),
         width: u32,
         height: u32,
         color: crate::Color,
     },
+    /// Rectangle with rounded corners. Roundness is a percentage.
     RoundedRect {
         top_left: (i32, i32),
         width: u32,
         height: u32,
-        roundness: f32,
+        roundness_percent: f32,
         color: crate::Color,
     },
 }
@@ -150,17 +154,6 @@ impl Renderer {
         }
     }
 
-    pub fn draw_text(&mut self, device: &wgpu::Device, encoder: &mut wgpu::CommandEncoder, frame: &wgpu::TextureView, window_dimensions: (u32, u32), section: glyph_brush::OwnedSection) {
-        self.text_renderer.render_section(
-            device, 
-            frame, 
-            encoder, 
-            window_dimensions.0, 
-            window_dimensions.1, 
-            section,
-        );
-    }
-
     pub fn draw(&mut self, command: DrawCommand, device: &wgpu::Device, _queue: &wgpu::Queue, target: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, window_dimensions: (u32, u32)) {
         match command {
             DrawCommand::Circle {center, radius, color} => {
@@ -202,19 +195,24 @@ impl Renderer {
             }
 
             // TODO: This needs a lot of work. Same with shader.
-            DrawCommand::RoundedRect { top_left, width, height, roundness, color } => {
+            DrawCommand::RoundedRect { top_left, width, height, mut roundness_percent, color } => {
                 self.quad.update_vertices(device, window_dimensions, top_left, width, height);
+                
+                // roundness =  clamp(min(half_width, half_height), 0, 100)
+                if roundness_percent < 0.0 {roundness_percent = 0.0;} else if roundness_percent > 100.0 {roundness_percent = 100.0;}
+                let roundness = (0.01 * roundness_percent) * std::cmp::min::<u32>(width, height) as f32 / 2.0;
+                
                 self.quad.update_uniforms(device, encoder, quad::Uniforms {
                     window_dimensions: (window_dimensions.0 as f32, window_dimensions.1 as f32).into(),
                     color: color.into(),
                     primitive_type: quad::primitive::ROUNDED_RECTANGLE,
                     center: (
-                        (((top_left.0 + width as i32 / 2) as f32 / window_dimensions.0 as f32 - 0.5) * 2.0) * window_dimensions.0 as f32 / window_dimensions.1 as f32, 
-                        ((top_left.1 + height as i32 / 2) as f32 / window_dimensions.1 as f32 - 0.5) * 2.0,
+                        top_left.0 as f32 + width as f32 / 2.0, 
+                        top_left.1 as f32 + height as f32 / 2.0,
                     ).into(),
                     circle_radius: 0.0,
-                    primitive_width: (width as f32 / window_dimensions.0 as f32) * window_dimensions.0 as f32 / window_dimensions.1 as f32,
-                    primitive_height: (height as f32 / window_dimensions.1 as f32),
+                    primitive_width: width as f32 / 2.0,
+                    primitive_height: height as f32 / 2.0,
                     rounded_rect_roundness: roundness,
                 });
 
@@ -225,7 +223,7 @@ impl Renderer {
             }
 
             DrawCommand::Text(section) => {
-                self.draw_text(device, encoder, target, window_dimensions, section);
+                self.text_renderer.queue_section(section);
             }
         }
     }

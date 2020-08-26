@@ -50,7 +50,7 @@ impl super::View for Stack {
             }
 
             match child {
-                ViewElement::View(view) => {
+                ViewElement::View(_view) => {
                     todo!();
                     // let (width, height) = view.size(text_renderer, theme);
 
