@@ -112,7 +112,6 @@ impl TextRenderer {
         ).unwrap();
     }
 
-    // TODO: Auto-generate Section from formatted text (like markdown)
     pub fn queue_section(&mut self, section: glyph_brush::OwnedSection) {       
         self.brush.queue(&section);
     }

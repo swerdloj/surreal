@@ -1,5 +1,6 @@
 #version 450
 
+// NOTE: These must be matched with the `type` uniform
 #define RECTANGLE 0
 #define ROUNDED_RECT 1
 #define CIRCLE 2
@@ -7,6 +8,7 @@
 layout(set = 0, binding = 0)
 uniform Uniforms {
     vec4 color;
+    // FIXME: Unused (using pixel-coords)
     vec2 window_dimensions;
     vec2 primitive_center;
     uint type;
@@ -20,9 +22,6 @@ layout(location = 0) out vec4 out_color;
 
 // SDFs modified from iq
 // https://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
-
-// TODO: Do not use uv-coords -> update everything to remove them
-// Pixel-coords work perfectly fine and are much easier to use
 
 // TODO: Alpha-blending for alread-transparent colors
 

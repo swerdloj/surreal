@@ -12,6 +12,7 @@ pub struct Button {
     bounds: BoundingRect,
     on_click: Option<Box<dyn FnMut(RefMut<State>)>>,
     color: Option<crate::Color>,
+    style: Option<crate::style::PrimitiveStyle>,
 
     // Register click only when mouse-down *and* mouse-up occur within bounds
     mouse_down_in_bounds: bool,
@@ -21,7 +22,7 @@ impl Button {
     pub fn new(id: &'static str) -> Self {
         let mut bounds = BoundingRect::new();
 
-        // TODO: Defaults should be from theme
+        // TODO: Defaults should be from theme & button contents
         bounds.width = 150;
         bounds.height = 75;
 
@@ -30,6 +31,7 @@ impl Button {
             bounds,
             on_click: None,
             color: None,
+            style: None,
             mouse_down_in_bounds: false,
         }
     }
@@ -47,6 +49,11 @@ impl Button {
 
     pub fn color(mut self, color: crate::Color) -> Self {
         self.color = Some(color);
+        self
+    }
+
+    pub fn style(mut self, style: crate::style::PrimitiveStyle) -> Self {
+        self.style = Some(style);
         self
     }
 }
@@ -96,20 +103,36 @@ impl Widget for Button {
             theme.colors.primary
         };
 
-        // renderer.draw(crate::render::DrawCommand::Rect {
-        //     top_left: self.bounds.top_left(),
-        //     width: self.bounds.width,
-        //     height: self.bounds.height,
-        //     color,
-        // });
+        let style = if let Some(style) = self.style {
+            style
+        } else {
+            theme.widget_styles.buttons
+        };
 
-        renderer.draw(crate::render::DrawCommand::RoundedRect {
-            top_left: self.bounds.top_left(),
-            width: self.bounds.width,
-            height: self.bounds.height,
-            roundness_percent: 50.0,
-            color,
-        });
+        // TODO: Renderer can do this itself using just the bounding_rect + style
+        match style {
+            // TODO: Might want a CircleButton instead and not allow text
+            crate::style::PrimitiveStyle::Circle => {
+                todo!()
+            }
+            crate::style::PrimitiveStyle::Rectangle => {
+                    renderer.draw(crate::render::DrawCommand::Rect {
+                    top_left: self.bounds.top_left(),
+                    width: self.bounds.width,
+                    height: self.bounds.height,
+                    color,
+                });
+            }
+            crate::style::PrimitiveStyle::RoundedRectangle { roundness } => {
+                renderer.draw(crate::render::DrawCommand::RoundedRect {
+                    top_left: self.bounds.top_left(),
+                    width: self.bounds.width,
+                    height: self.bounds.height,
+                    roundness_percent: roundness,
+                    color,
+                });
+            }
+        }
     }
 }
 

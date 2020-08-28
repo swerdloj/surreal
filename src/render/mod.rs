@@ -154,9 +154,9 @@ impl Renderer {
         }
     }
 
-    pub fn draw(&mut self, command: DrawCommand, device: &wgpu::Device, _queue: &wgpu::Queue, target: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, window_dimensions: (u32, u32)) {
+    pub fn draw(&mut self, command: DrawCommand, device: &wgpu::Device, _queue: &wgpu::Queue, target: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, window_dimensions: (u32, u32)) {       
         match command {
-            DrawCommand::Circle {center, radius, color} => {
+            DrawCommand::Circle { center, radius, color } => {
                 self.quad.update_vertices(device, window_dimensions, (center.0 - radius as i32, center.1 - radius as i32), radius*2, radius*2);
                 self.quad.update_uniforms(device, encoder, quad::Uniforms {
                     color: color.into(),
@@ -168,11 +168,6 @@ impl Renderer {
                     primitive_height: 0.0,
                     rounded_rect_roundness: 0.0,
                 });
-
-                let mut render_pass = Self::create_render_pass(encoder, target);
-
-                render_pass.set_pipeline(&self.quad_render_pipeline);
-                self.quad.render(&mut render_pass);
             }
 
             DrawCommand::Rect { top_left, width, height, color } => {
@@ -187,18 +182,12 @@ impl Renderer {
                     primitive_height: 0.0,
                     rounded_rect_roundness: 0.0,
                 });
-
-                let mut render_pass = Self::create_render_pass(encoder, target);
-
-                render_pass.set_pipeline(&self.quad_render_pipeline);
-                self.quad.render(&mut render_pass);
             }
 
-            // TODO: This needs a lot of work. Same with shader.
             DrawCommand::RoundedRect { top_left, width, height, mut roundness_percent, color } => {
                 self.quad.update_vertices(device, window_dimensions, top_left, width, height);
                 
-                // roundness =  clamp(min(half_width, half_height), 0, 100)
+                // roundness = clamp(min(half_width, half_height), 0, 100)
                 if roundness_percent < 0.0 {roundness_percent = 0.0;} else if roundness_percent > 100.0 {roundness_percent = 100.0;}
                 let roundness = (0.01 * roundness_percent) * std::cmp::min::<u32>(width, height) as f32 / 2.0;
                 
@@ -215,17 +204,18 @@ impl Renderer {
                     primitive_height: height as f32 / 2.0,
                     rounded_rect_roundness: roundness,
                 });
-
-                let mut render_pass = Self::create_render_pass(encoder, target);
-
-                render_pass.set_pipeline(&self.quad_render_pipeline);
-                self.quad.render(&mut render_pass);
             }
 
+            // Rendering is handled by the TextRenderer -> early return
             DrawCommand::Text(section) => {
                 self.text_renderer.queue_section(section);
+                return;
             }
-        }
+        } // match
+
+        let mut render_pass = Self::create_render_pass(encoder, target);
+        render_pass.set_pipeline(&self.quad_render_pipeline);
+        self.quad.render(&mut render_pass);
     }
 
     fn create_render_pass<'a>(encoder: &'a mut wgpu::CommandEncoder, target: &'a wgpu::TextureView) -> wgpu::RenderPass<'a> {

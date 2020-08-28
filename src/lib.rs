@@ -18,6 +18,7 @@ pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormS
 /// Re-exports for easy library import via `use surreal::prelude::*;`
 pub mod prelude {
     pub use crate::{
+        style::*,
         application::{Application, ApplicationSettings},
         state::State,
         widget::*,
@@ -63,6 +64,7 @@ impl Color {
     pub const BLACK:        Color = Color { r: 0.0,   g: 0.0,  b: 0.0,   a: 1.0 };
     pub const CLEAR:        Color = Color { r: 0.0,   g: 0.0,  b: 0.0,   a: 0.0 };
     pub const DARK_GRAY:    Color = Color { r: 0.01,  g: 0.01, b: 0.01,  a: 1.0 };
+    pub const LIGHT_GRAY:   Color = Color { r: 0.3,   g: 0.3,  b: 0.3,   a: 1.0 };
     pub const WHITE:        Color = Color { r: 1.0,   g: 1.0,  b: 1.0,   a: 1.0 };
 
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {

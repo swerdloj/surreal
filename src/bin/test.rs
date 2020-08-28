@@ -13,7 +13,10 @@ fn main() {
             test: u32 = 0,
         },
 
-        Button::new("above_text"),
+        Button::new("above_text")
+            .style(PrimitiveStyle::RoundedRectangle {
+                roundness: 100.0,
+            }),
 
         Text::new("text")
             .text("This is a text widget with some text in it")
@@ -26,16 +29,18 @@ fn main() {
 
                 println!("Presses: {}", test);
             })
-            .color(Color::DARK_GRAY),
+            .color(Color::LIGHT_GRAY),
 
         Text::new("more_text")
             .text("More text here")
             .color(Color::new(0.4, 0.6, 0.8, 1.0))
             .scale(50.0),
 
-        Button::new("test2"),
+        Button::new("test2")
+            .style(PrimitiveStyle::Rectangle),
 
         Button::new("test3"),
+        
         Button::new("test4")
             .color(Color::new(0.2, 0.3, 0.8, 1.0)),
     };

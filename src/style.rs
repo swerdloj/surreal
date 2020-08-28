@@ -56,7 +56,13 @@ pub const DEFAULT_THEME: Theme = Theme {
         secondary: Color::DARK_GRAY,
         background: Color::AUBERGINE,
         text: Color::ALMOST_WHITE,
-    }
+    },
+
+    widget_styles: Widgets {
+        buttons: PrimitiveStyle::RoundedRectangle {
+            roundness: 50.0,
+        },
+    },
 };
 
 ////////////////////
@@ -64,6 +70,23 @@ pub const DEFAULT_THEME: Theme = Theme {
 pub struct Theme {
     pub padding: Padding,
     pub colors: Colors,
+
+    pub widget_styles: Widgets,
+}
+
+////////////////////
+
+#[derive(Copy, Clone)]
+pub enum PrimitiveStyle {
+    Circle,
+    Rectangle,
+    RoundedRectangle {
+        roundness: f32,
+    },
+}
+
+pub struct Widgets {
+    pub buttons: PrimitiveStyle,
 }
 
 pub struct Padding {
