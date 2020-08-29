@@ -1,25 +1,11 @@
 use std::collections::HashMap;
 use std::any::Any;
 
-macro_rules! make_get_type {
-    ( $($t:ty), + ) => {
-        paste::paste! {
-            $(
-                #[allow(non_snake_case)]
-                pub fn [<get_ $t>](&mut self, id: &'static str) -> &mut $t {
-                    self.get::<$t>(id)
-                }
-            )+
-        }
-    };
-}
-
 pub type Shared<T> = std::rc::Rc<std::cell::RefCell<T>>;
 pub fn make_shared<T>(value: T) -> Shared<T> {
     std::rc::Rc::new(std::cell::RefCell::new(value))
 }
 
-#[derive(Debug)]
 pub struct State {
     vars: HashMap<&'static str, Box<dyn Any>>,
 }
@@ -74,17 +60,6 @@ impl State {
             panic!("Downcast of `{}` failed. Double check its type.", id);
         }
     }
-
-    // Convenience getters for primitive types
-    make_get_type!(
-        u8, u16, u32, u64, u128, 
-        i8, i16, i32, i64, i128, 
-        f32, f64,
-        isize, usize,
-        bool,
-        char,
-        String
-    );
 }
 
 // TODO: It might be worth storing the type information somewhere since it

@@ -10,6 +10,7 @@ use super::Widget;
 pub struct Button {
     id: &'static str,
     bounds: BoundingRect,
+    text: Option<super::Text>,
     on_click: Option<Box<dyn FnMut(RefMut<State>)>>,
     color: Option<crate::Color>,
     style: Option<crate::style::PrimitiveStyle>,
@@ -29,6 +30,7 @@ impl Button {
         Button {
             id,
             bounds,
+            text: None,
             on_click: None,
             color: None,
             style: None,
@@ -38,6 +40,11 @@ impl Button {
 
     pub fn on_click<F: FnMut(RefMut<State>) + 'static>(mut self, cb: F) -> Self {
         self.on_click = Some(Box::new(cb));
+        self
+    }
+
+    pub fn text(mut self, text: super::Text) -> Self {
+        self.text = Some(text);
         self
     }
 
@@ -90,6 +97,11 @@ impl Widget for Button {
     fn place(&mut self, x: i32, y: i32) {
         self.bounds.x = x;
         self.bounds.y = y;
+
+        if let Some(text) = &mut self.text {
+            // TODO: Center the text within the button
+            text.place(x + 15, y + 15);
+        }
     }
 
     fn render_size(&self, _text_renderer: &mut crate::render::font::TextRenderer, _theme: &crate::style::Theme) -> (u32, u32) {
@@ -132,6 +144,10 @@ impl Widget for Button {
                     color,
                 });
             }
+        }
+
+        if let Some(text) = &self.text {
+            text.render(renderer, theme);
         }
     }
 }

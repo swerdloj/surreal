@@ -5,15 +5,21 @@ use surreal::prelude::*;
 
 fn main() {
     // TODO: See whether state can be shared between widgets somehow
-    // using FnMut closures and Rc<RefCell>
+    // using `FnMut` closures and `Rc<RefCell>`
+    // Consider an auto-cloning macro with a `Shared<T>` type
 
-    // TODO: Consider implementing an Elm-like message system
+    // TODO: Implement an Elm-like message system (and replace `State`?)
     let mut view = VStack! {
         State! {
             test: u32 = 0,
         },
 
-        Button::new("above_text")
+        Button::new("text_button")
+            .text(Text::new("") // <-- Nested id is not needed
+                .text("Button......")
+                .scale(40.0)
+                .color(Color::BLACK)
+            )
             .style(PrimitiveStyle::RoundedRectangle {
                 roundness: 100.0,
             }),
@@ -29,6 +35,10 @@ fn main() {
 
                 println!("Presses: {}", test);
             })
+            .text(Text::new("")
+                .text("+")
+                .scale(60.0)
+            )
             .color(Color::LIGHT_GRAY),
 
         Text::new("more_text")
