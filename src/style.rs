@@ -1,10 +1,6 @@
-// TODO: User can define colors, shapes, sizes/padding, font, etc.
-// Maybe this can be parsed from a theme file to simplify the process
+/* TODO: Custom file format for defining themes
 
-// The theme object would be passed to widgets for use when laying out
-// and rendering
-
-/* example:
+example:
 
 
 theme ExampleTheme:

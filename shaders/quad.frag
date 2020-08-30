@@ -45,7 +45,7 @@ void main() {
 
     else if (type == ROUNDED_RECT) {
         float dist = sd_rounded_rect(gl_FragCoord.xy, primitive_center, primitive_width, primitive_height, rounded_rect_roundness);
-        // TEMP: See below
+        // FIXME: See below
         dist += min(0.5, rounded_rect_roundness);
         out_color = vec4(color.rgb, alpha_from_dist(dist));
         return;

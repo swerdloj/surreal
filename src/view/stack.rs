@@ -1,12 +1,12 @@
 use crate::state::{Shared, State, make_shared};
-use crate::{Orientation, ViewElement};
+use crate::Orientation;
 use crate::view_element::*;
 
 #[derive(IntoViewElement)]
 #[kind(View)]
 pub struct Stack {
     orientation: Orientation,
-    state: Shared<State>,
+    state: Option<Shared<State>>,
     // TODO: Children should be an ordered hashmap of (id -> element)
     // This would also enforce unique element ids
     children: Vec<ViewElement>,
@@ -15,10 +15,10 @@ pub struct Stack {
 }
 
 impl Stack {
-    pub fn new(orientation: Orientation, state: State, children: Vec<ViewElement>) -> Self {
+    pub fn new(orientation: Orientation, children: Vec<ViewElement>) -> Self {
         Stack {
             orientation,
-            state: make_shared(state),
+            state: None,
             children,
 
             bounds: crate::bounding_rect::BoundingRect::new(),
@@ -28,11 +28,12 @@ impl Stack {
 
 impl super::View for Stack {
     fn assign_state(&mut self, state: crate::state::State) {
-        self.state = make_shared(state);
+        self.state = Some(make_shared(state));
     }
 
+    // TODO: All child views should have clones of the root's `State` (and no `Option`)
     fn state(&self) -> Shared<State> {
-        self.state.clone()
+        self.state.as_ref().unwrap().clone()
     }
 
     // TODO: Account for view padding
@@ -84,8 +85,6 @@ impl super::View for Stack {
                         }
                     }
                 }
-
-                ViewElement::TEMP_State(_) => unreachable!(),
             }
         }
 
@@ -114,64 +113,37 @@ impl super::View for Stack {
     }
 }
 
-// TODO: Create a third "Stack" macro that V/HStack forward to
-// by supplying the expressions and the varient.
+// TODO: Create a third "Stack" macro that is called by V/HStack
+// with the proper orientation.
 // This prevents the two macros from having duplicated bodies.
-// Eventually, a procedural macro would replace the need for this
 
 
+/// Builds a view with `Orientation::Vertical` 
 #[macro_export]
 macro_rules! VStack {
     ( $($component:expr),+ $(,)? ) => {{
-        let mut state = State::new();
         let mut children = Vec::new();
-
-        let mut has_state = false;
 
         $(
             let child = $component.into_element();
-            match child {
-                ViewElement::TEMP_State(some_state) => {
-                    if has_state {
-                        panic!("State can only be declared once per view");
-                    } else {
-                        state = some_state;
-                        has_state = true;
-                    }
-                }
-
-                _ => children.push(child),
-            }
+            children.push(child);
         )+
 
-        Stack::new(Orientation::Vertical, state, children)
+        Stack::new(Orientation::Vertical, children)
     }};
 }
 
+/// Builds a view with `Orientation::Horizontal` 
 #[macro_export]
 macro_rules! HStack {
     ( $($component:expr),+ $(,)? ) => {{
-        let mut state = State::new();
         let mut children = Vec::new();
-
-        let mut has_state = false;
 
         $(
             let child = $component.into_element();
-            match child {
-                ViewElement::TEMP_State(some_state) => {
-                    if has_state {
-                        panic!("State can only be declared once per view");
-                    } else {
-                        state = some_state;
-                        has_state = true;
-                    }
-                }
-
-                _ => children.push(child),
-            }
+            children.push(child);
         )+
 
-        Stack::new(Orientation::Horizontal, state, children)
+        Stack::new(Orientation::Horizontal, children)
     }};
 }

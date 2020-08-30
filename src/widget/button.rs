@@ -51,12 +51,6 @@ impl Button {
         self
     }
 
-    // TEMP:
-    pub fn bounds(mut self, bounds: BoundingRect) -> Self {
-        self.bounds = bounds;
-        self
-    }
-
     pub fn color(mut self, color: crate::Color) -> Self {
         self.color = Some(color);
         self

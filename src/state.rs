@@ -11,12 +11,6 @@ pub struct State {
 }
 
 impl State {
-    // TEMP: Remove this once procedural macro is made. 
-    // This is a dirty duck-typing macro hack
-    pub fn into_element(self) -> crate::ViewElement {
-        crate::ViewElement::TEMP_State(self)
-    }
-
     pub fn new() -> Self {
         State {
             vars: HashMap::new(),

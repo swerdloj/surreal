@@ -18,8 +18,7 @@ struct gpu {
     pub swap_chain: SwapChain,
 }
 
-// TODO: I don't know whether I prefer this or builder-style
-// Decide after settings are finalized whether this is relevant
+// TODO: An "ApplicationBuilder" might be needed for allowing more windowing options
 pub struct ApplicationSettings {
     pub title: &'static str,
     pub width: u32,
@@ -61,8 +60,6 @@ pub struct Application {
 }
 
 impl Application {
-    // TODO: Set options using a type like ApplicationSettings
-    // Then, tweak fit_window_to_view so window sizing is most convenient for users
     pub fn new(settings: ApplicationSettings) -> Self {
         let sdl = init_sdl2(settings.title, settings.width, settings.height, settings.resizable);
         let gpu = futures::executor::block_on(

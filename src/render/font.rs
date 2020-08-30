@@ -94,7 +94,7 @@ impl TextRenderer {
         let bounds = self.brush.glyph_bounds(section);
         
         if let Some(rect) = bounds {
-            // TODO: How do the rect's floats compare to actual pixels?
+            // TODO: How do the rect's floats compare to actual pixels? Round up?
             (rect.width() as u32, rect.height() as u32)
         } else {
             // Nothing is being drawn -> no size

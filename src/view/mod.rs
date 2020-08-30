@@ -16,8 +16,8 @@ pub trait View : crate::IntoViewElement {
     fn render_height(&self) -> u32;
 
     // TODO: Should views serve only as containers?
-    // Implementing this as part of the trait will not allow otherwise
-    // After all, views simply arrange widgets & elements
+    // Implementing this as part of the trait will not allow otherwise.
+    // Might want to allow backgrounds or outlines for views.
     fn render(&mut self, renderer: &mut crate::render::ContextualRenderer, theme: &crate::style::Theme) {
         use crate::ViewElement::*;
         for child in self.children() {
@@ -28,10 +28,6 @@ pub trait View : crate::IntoViewElement {
                 
                 Widget(widget) => {
                     widget.render(renderer, theme);
-                }
-                
-                TEMP_State(_state) => {
-                    // TEMP: This will be removed eventually
                 }
             }
         }
@@ -56,8 +52,6 @@ pub trait View : crate::IntoViewElement {
                 Widget(widget) => {
                     widget.handle_event(event, state.clone().borrow_mut());
                 }
-
-                _ => {}
             }
         }
     }

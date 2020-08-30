@@ -185,8 +185,6 @@ fn format_closures(state: &State, input: syn::export::TokenStream2) -> syn::expo
     }).collect()
 }
 
-#[allow(non_snake_case)]
-#[proc_macro]
 /// Adds state to a view.
 /// State is declared using the following syntax:
 ///
@@ -205,6 +203,8 @@ fn format_closures(state: &State, input: syn::export::TokenStream2) -> syn::expo
 ///     })
 /// ```
 /// Note that that `state` **must** be named `state` and nothing else
+#[allow(non_snake_case)]
+#[proc_macro]
 pub fn Stateful(input: TokenStream) -> TokenStream {
     let state = parse_macro_input!(input as State);
 
@@ -213,7 +213,7 @@ pub fn Stateful(input: TokenStream) -> TokenStream {
     
     let state_expansion = quote! {
         {
-            let state = #state;
+            let mut state = #state;
             let mut view = #formatted_view;
             view.assign_state(state);
             view
@@ -233,8 +233,6 @@ struct DeriveArgs {
 
 impl Parse for DeriveArgs {
     fn parse(input: ParseStream) -> Result<Self> {
-        println!("input: {:#}", input);
-
         Ok(DeriveArgs {
             kind: input.parse()?
         })

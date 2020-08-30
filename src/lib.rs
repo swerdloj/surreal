@@ -35,14 +35,11 @@ pub mod prelude {
     };
 }
 
+/// Types and derive macro required when using `#derive(IntoViewElement)`
 pub mod view_element {
     pub use macros::IntoViewElement;
     pub use crate::{IntoViewElement, ViewElement};
 }
-
-
-use crate::widget::Widget;
-use crate::view::View;
 
 pub enum EventResponse {
     /// Event will be consumed, preventing it from propogating any further.
@@ -114,15 +111,10 @@ pub enum Orientation {
 }
 
 pub enum ViewElement {
-    Widget(Box<dyn Widget>),
-    View(Box<dyn View>),
-    
-    // TEMP: State will be removed once procedural macro is implemented
-    #[allow(non_camel_case_types)]
-    TEMP_State(crate::state::State),
+    Widget(Box<dyn crate::widget::Widget>),
+    View(Box<dyn crate::view::View>),
 }
 
-// TODO: Create derive macro for this that lets user choose element type to conver to
 pub trait IntoViewElement {
     fn into_element(self) -> ViewElement;
 }
