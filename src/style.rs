@@ -46,7 +46,12 @@ use crate::Color;
 // TEMP: Import this from a file
 // TODO: Create theme hot-reloading feature
 pub const DEFAULT_THEME: Theme = Theme {
-    padding: Padding {
+    view_padding: Padding {
+        vertical: 10,
+        horizontal: 20,
+    },
+
+    widget_padding: Padding {
         vertical: 10,
         horizontal: 20,
     },
@@ -68,7 +73,8 @@ pub const DEFAULT_THEME: Theme = Theme {
 ////////////////////
 
 pub struct Theme {
-    pub padding: Padding,
+    pub view_padding: Padding,
+    pub widget_padding: Padding,
     pub colors: Colors,
 
     pub widget_styles: Widgets,

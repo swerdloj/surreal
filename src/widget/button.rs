@@ -1,5 +1,6 @@
 use crate::state::State;
 use crate::bounding_rect::BoundingRect;
+use crate::view_element::*;
 
 use std::cell::RefMut;
 
@@ -7,6 +8,8 @@ use sdl2::event::Event;
 
 use super::Widget;
 
+#[derive(IntoViewElement)]
+#[kind(Widget)]
 pub struct Button {
     id: &'static str,
     bounds: BoundingRect,
@@ -104,7 +107,9 @@ impl Widget for Button {
         }
     }
 
-    fn render_size(&self, _text_renderer: &mut crate::render::font::TextRenderer, _theme: &crate::style::Theme) -> (u32, u32) {
+    fn render_size(&self, _text_renderer: &mut crate::render::font::TextRenderer, _theme: &crate::style::Theme) -> (u32, u32) {        
+        // TODO: Account for text size
+        
         (self.bounds.width, self.bounds.height)
     }
 
@@ -149,11 +154,5 @@ impl Widget for Button {
         if let Some(text) = &self.text {
             text.render(renderer, theme);
         }
-    }
-}
-
-impl crate::IntoViewElement for Button {
-    fn into_element(self) -> crate::ViewElement {
-        crate::ViewElement::Widget(Box::new(self))
     }
 }

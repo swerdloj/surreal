@@ -1,3 +1,4 @@
+macros/target
 /target
 Cargo.lock
 *.dll

@@ -6,6 +6,7 @@ pub use stack::Stack;
 // but other views may be desired such as TabView, GridView, ScrollView, and so on
 pub trait View : crate::IntoViewElement {
     fn state(&self) -> crate::state::Shared<crate::state::State>;
+    fn assign_state(&mut self, state: crate::state::State);
 
     fn children(&mut self) -> &mut Vec<crate::ViewElement>;
 

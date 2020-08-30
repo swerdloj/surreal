@@ -1,9 +1,9 @@
-use crate::state::{Shared, State};
+use crate::state::{Shared, State, make_shared};
 use crate::{Orientation, ViewElement};
+use crate::view_element::*;
 
-use std::rc::Rc;
-use std::cell::RefCell;
-
+#[derive(IntoViewElement)]
+#[kind(View)]
 pub struct Stack {
     orientation: Orientation,
     state: Shared<State>,
@@ -18,7 +18,7 @@ impl Stack {
     pub fn new(orientation: Orientation, state: State, children: Vec<ViewElement>) -> Self {
         Stack {
             orientation,
-            state: Rc::new(RefCell::new(state)),
+            state: make_shared(state),
             children,
 
             bounds: crate::bounding_rect::BoundingRect::new(),
@@ -27,6 +27,10 @@ impl Stack {
 }
 
 impl super::View for Stack {
+    fn assign_state(&mut self, state: crate::state::State) {
+        self.state = make_shared(state);
+    }
+
     fn state(&self) -> Shared<State> {
         self.state.clone()
     }
@@ -39,14 +43,14 @@ impl super::View for Stack {
         let mut view_height = 0;
 
         match self.orientation {
-            Orientation::Horizontal => current_y += theme.padding.vertical,
-            Orientation::Vertical => current_x += theme.padding.horizontal,
+            Orientation::Horizontal => current_y += theme.view_padding.vertical,
+            Orientation::Vertical => current_x += theme.view_padding.horizontal,
         }
         
         for child in &mut self.children {
             match self.orientation {
-                Orientation::Horizontal => current_x += theme.padding.horizontal,
-                Orientation::Vertical => current_y += theme.padding.vertical,
+                Orientation::Horizontal => current_x += theme.view_padding.horizontal,
+                Orientation::Vertical => current_y += theme.view_padding.vertical,
             }
 
             match child {
@@ -87,12 +91,12 @@ impl super::View for Stack {
 
         match self.orientation {
             Orientation::Vertical => {
-                self.bounds.width = view_width + 2*theme.padding.horizontal;
-                self.bounds.height = current_y + theme.padding.vertical;
+                self.bounds.width = view_width + 2*theme.view_padding.horizontal;
+                self.bounds.height = current_y + theme.view_padding.vertical;
             }
             Orientation::Horizontal => {
-                self.bounds.width = current_x + theme.padding.horizontal;
-                self.bounds.height = view_height + 2*theme.padding.vertical;
+                self.bounds.width = current_x + theme.view_padding.horizontal;
+                self.bounds.height = view_height + 2*theme.view_padding.vertical;
             }
         }
     }
@@ -107,12 +111,6 @@ impl super::View for Stack {
 
     fn children(&mut self) -> &mut Vec<crate::ViewElement> {
         &mut self.children
-    }
-}
-
-impl crate::IntoViewElement for Stack {
-    fn into_element(self) -> ViewElement {
-        ViewElement::View(Box::new(self))
     }
 }
 

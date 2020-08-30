@@ -19,6 +19,8 @@ bytemuck = "1.3.1"
 glsl-to-spirv = "0.1.7"
 cgmath = "0.17.0"
 
+macros = { path = "./macros" }
+
 [dependencies.sdl2]
 version = "0.34.2"
 features = ["raw-window-handle"]

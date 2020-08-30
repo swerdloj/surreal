@@ -17,6 +17,8 @@ pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormS
 
 /// Re-exports for easy library import via `use surreal::prelude::*;`
 pub mod prelude {
+    pub use macros::Stateful;
+
     pub use crate::{
         style::*,
         application::{Application, ApplicationSettings},
@@ -31,6 +33,11 @@ pub mod prelude {
         ViewElement,
         IntoViewElement,
     };
+}
+
+pub mod view_element {
+    pub use macros::IntoViewElement;
+    pub use crate::{IntoViewElement, ViewElement};
 }
 
 

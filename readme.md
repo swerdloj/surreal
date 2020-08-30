@@ -14,28 +14,31 @@ fn main() {
         .on_quit(|| println!("Quitting..."));
 
     // Views use declarative syntax
-    // TODO: This can be greatly improved via procedural macros
-    let view = VStack! { 
-        // This becomes a variable accessible by anything that comes after via `state`
-        State! {
+    // The `Stateful!` macro adds custom syntax for working with shared state
+    let mut view = Stateful! {
+        // Procedural macro magic happens here
+        @State {
             counter: i32 = 0,
         },
-        
-        Text::new("counter_text")
-            .on_update(|text, state| text = state.get::<i32>("counter").to_string())
-            .update_animation(Animations::Bump),
 
-        HStack! {
-            Button::new("increment")
-                .text("+")
-                .on_click(|state| state.get_i32("counter") += 1),
+        // `@counter` is compiled to `state.get::<i32>("counter")`
+        VStack! { 
+            Text::new("counter_text")
+                .on_update(|text, state| text = @counter.to_string())
+                .update_animation(Animations::Bump),
 
-            Button::new("decrement")
-                .text("-")
-                .on_click(|state| state.get_i32("counter") -= 1)
-        },
+            HStack! {
+                Button::new("increment")
+                    .text("+")
+                    .on_click(|state| @counter += 1),
+
+                Button::new("decrement")
+                    .text("-")
+                    .on_click(|state| @counter -= 1),
+            },
+        }
     };
 
-    app.run(view);
+    app.run(&mut view);
 }
 ```

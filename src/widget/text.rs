@@ -1,5 +1,9 @@
+use crate::view_element::*;
+
 use super::Widget;
 
+#[derive(IntoViewElement)]
+#[kind(Widget)]
 pub struct Text {
     id: &'static str,
     text: String,
@@ -97,11 +101,5 @@ impl Widget for Text {
         };
         
         renderer.draw(crate::render::DrawCommand::Text(section.to_owned()));
-    }
-}
-
-impl crate::IntoViewElement for Text {
-    fn into_element(self) -> crate::ViewElement {
-        crate::ViewElement::Widget(Box::new(self))
     }
 }
