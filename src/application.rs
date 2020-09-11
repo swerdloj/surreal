@@ -103,16 +103,17 @@ impl Application {
         let mut event_pump = self.sdl.context.event_pump().unwrap();
         
         let mut text_renderer = crate::render::font::TextRenderer::from_fonts(
-            self.take_fonts(), 
+            self.take_fonts(),
             &self.gpu.device, 
             crate::TEXTURE_FORMAT
         );
 
+        view.init(&mut text_renderer, &self.global_theme);
         view.layout(&mut text_renderer, &self.global_theme);
 
         // TODO: Account for when the view changes
         if self.fit_window_to_view {
-            let (width, height) = (view.render_width(), view.render_height());
+            let (width, height) = view.render_size();
             println!("Resizing window to view dimensions: {}x{}", width, height);
             self.sdl.window.set_size(width, height).unwrap();
             self.resize_swap_chain(width, height);

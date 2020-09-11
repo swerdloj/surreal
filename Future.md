@@ -8,7 +8,23 @@
 - Identify the minimum viable product
 
 
+# Goals
+
+1. Ease of use
+  - See what people will do with the library
+  - Make those features easy to use/simple
+2. Performance
+3. Customizability
+
+
 # White Paper
+- Can do in HTML
+  - Website format (look into GitHub sites)
+  - Look into format like https://bevyengine.org/community/
+  - Should show future potential
+    - Encourage contributions
+- First build basic feature set
+- Consider video companion
 
 ## Purpose
 - Introduce the project
@@ -16,10 +32,17 @@
   - What it does
 - Specify intentions
 - Relate to community (Rust & GUI development)
+- Cross-platform & future-proof
 
 ## Implementation
 - Explain how it accomplishes its various goals
 - How it can/will grow
+
+
+## Features
+- Track animation state
+  - Stop rendering when no new frames are needed
+
 
 ## Benchmarking
 - Note performance
@@ -27,6 +50,10 @@
     - Bevy, Conrad, Iced, etc.
   - Compare to existing solution
     - Unity, Electron, etc.
+  - Integrated GPU vs discrete
+- CPU vs GPU frame times
+- Compare to software rendering
+  - Low powered devices such as Raspberry Pi
 
 
 # Documentation

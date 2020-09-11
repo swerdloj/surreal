@@ -27,8 +27,23 @@ impl Stack {
 }
 
 impl super::View for Stack {
+    fn share_state(&mut self, state: Shared<State>) {
+        self.state = Some(state);
+    }
+
     fn assign_state(&mut self, state: crate::state::State) {
-        self.state = Some(make_shared(state));
+        let shared_state = make_shared(state);
+
+        for child in &mut self.children {
+            match child {
+                ViewElement::View(view) => {
+                    view.share_state(shared_state.clone());
+                }
+
+                _ => {}
+            }
+        }
+        self.state = Some(shared_state);
     }
 
     // TODO: All child views should have clones of the root's `State` (and no `Option`)
@@ -36,7 +51,7 @@ impl super::View for Stack {
         self.state.as_ref().unwrap().clone()
     }
 
-    // TODO: Account for view padding
+    // TODO: Differentiate view & widget padding
     fn layout(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
         let mut current_x = 0;
         let mut current_y = 0;
@@ -49,41 +64,51 @@ impl super::View for Stack {
         }
         
         for child in &mut self.children {
+            let width;
+            let height;
+
             match self.orientation {
                 Orientation::Horizontal => current_x += theme.view_padding.horizontal,
                 Orientation::Vertical => current_y += theme.view_padding.vertical,
             }
 
             match child {
-                ViewElement::View(_view) => {
-                    todo!();
-                    // let (width, height) = view.size(text_renderer, theme);
-
-                    // match self.orientation {
-                    //     Orientation::Vertical => {
-                    //         current_y += height;
-                    //     }
-                    //     Orientation::Horizontal => {
-                    //         current_x += width;
-                    //     }
-                    // }
+                ViewElement::View(view) => {
+                    view.layout(text_renderer, theme);
+                    let size = view.render_size();
+                    width = size.0; 
+                    height = size.1;
+                    
+                    // TODO: Adjust view_width & view_height
+                    // FIXME: Should not need to account for padding here
+                    match self.orientation {
+                        Orientation::Vertical => {
+                            view.translate((current_x - theme.view_padding.horizontal) as i32, current_y as i32);
+                        }
+                        Orientation::Horizontal => {
+                            todo!()
+                        }
+                    }
                 }
                 
                 ViewElement::Widget(widget) => {
                     widget.place(current_x as i32, current_y as i32);
                     println!("Placing {} at ({}, {})", widget.id(), current_x, current_y);
                     
-                    let (width, height) = widget.render_size(text_renderer, theme);
-                    match self.orientation {
-                        Orientation::Vertical => {
-                            current_y += height;
-                            view_width = std::cmp::max(width, view_width);
-                        }
-                        Orientation::Horizontal => {
-                            current_x += width;
-                            view_height = std::cmp::max(height, view_height);
-                        }
-                    }
+                    let size = widget.render_size(theme);
+                    width = size.0; 
+                    height = size.1;
+                }
+            }
+
+            match self.orientation {
+                Orientation::Vertical => {
+                    current_y += height;
+                    view_width = std::cmp::max(width, view_width);
+                }
+                Orientation::Horizontal => {
+                    current_x += width;
+                    view_height = std::cmp::max(height, view_height);
                 }
             }
         }
@@ -96,6 +121,22 @@ impl super::View for Stack {
             Orientation::Horizontal => {
                 self.bounds.width = current_x + theme.view_padding.horizontal;
                 self.bounds.height = view_height + 2*theme.view_padding.vertical;
+            }
+        }
+    }
+
+    fn translate(&mut self, dx: i32, dy: i32) {
+        self.bounds.x += dx;
+        self.bounds.y += dy;
+
+        for child in &mut self.children {
+            match child {
+                ViewElement::Widget(widget) => {
+                    widget.translate(dx, dy);
+                }
+                ViewElement::View(view) => {
+                    view.translate(dx, dy);
+                }
             }
         }
     }

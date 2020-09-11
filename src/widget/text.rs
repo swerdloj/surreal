@@ -10,7 +10,9 @@ pub struct Text {
     font: String,
     scale: f32,
     color: Option<crate::Color>,
-    bounds: crate::bounding_rect::BoundingRect,
+    pub bounds: crate::bounding_rect::BoundingRect,
+
+    section: Option<glyph_brush::OwnedSection>,
 }
 
 impl Text {
@@ -22,6 +24,8 @@ impl Text {
             scale: 16.0,
             color: None,
             bounds: crate::bounding_rect::BoundingRect::new(),
+
+            section: None,
         }
     }
 
@@ -51,16 +55,35 @@ impl Widget for Text {
         self.id
     }
 
+    fn translate(&mut self, dx: i32, dy: i32) {
+        self.bounds.x += dx;
+        self.bounds.y += dy;
+
+        if let Some(section) = &mut self.section {
+            section.screen_position = (self.bounds.x as f32, self.bounds.y as f32);
+        }
+    }
+
     fn place(&mut self, x: i32, y: i32) {
         self.bounds.x = x;
         self.bounds.y = y;
+
+        if let Some(section) = &mut self.section {
+            section.screen_position = (x as f32, y as f32);
+        }
     }
 
-    fn render_size(&self, text_renderer: &mut crate::render::font::TextRenderer, _theme: &crate::style::Theme) -> (u32, u32) {
-        // TODO: Same as in `render`: section can be saved for later use
+    fn init(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {       
+        // 1. Create section
+        let color = if let Some(color) = &self.color {
+            color
+        } else {
+            &theme.colors.text
+        };
 
         let text = wgpu_glyph::Text::new(&self.text)
             .with_scale(self.scale)
+            .with_color(color.as_array())
             .with_font_id(text_renderer.get_font_id(&self.font));
         
         let section = wgpu_glyph::Section {
@@ -70,36 +93,24 @@ impl Widget for Text {
             ..wgpu_glyph::Section::default()
         };
 
-        text_renderer.get_section_bounds(section)
+        let (width, height) = text_renderer.get_section_bounds(&section);
+        
+        // 2. Set widget bounds
+        self.bounds.width = width;
+        self.bounds.height = height;
+
+        // 3. Store section
+        self.section = Some(section.to_owned());
     }
 
-    fn render(&self, renderer: &mut crate::render::ContextualRenderer, theme: &crate::style::Theme) {
-        // Reference to avoid cloning
-        let color = if let Some(color) = &self.color {
-            color
-        } else {
-            &theme.colors.text
-        };
-        
-        let text = wgpu_glyph::Text::new(&self.text)
-            .with_scale(self.scale)
-            .with_color(color.as_array())
-            .with_font_id(renderer.get_font_id(&self.font));
-        
-        // TODO: Use Section instead of a String and variables
-        // this would also allow users to have mutli-colored text,
-        // bold/italic words, different sizes, etc.
-        // Consider implementing text formatting like markdown-style
-        // to make this easy for users 
-        // TODO: Store this. It doesn't need to be re-created each render
-        let section = wgpu_glyph::Section {
-            screen_position: (self.bounds.x as f32, self.bounds.y as f32),
-            text: vec![
-                text,
-            ],
-            ..wgpu_glyph::Section::default()
-        };
-        
-        renderer.draw(crate::render::DrawCommand::Text(section.to_owned()));
+    fn render_size(&self, _theme: &crate::style::Theme) -> (u32, u32) {
+        self.bounds.dimensions()
+        // text_renderer.get_section_bounds(&self...)
+    }
+
+    fn render(&self, renderer: &mut crate::render::ContextualRenderer, _theme: &crate::style::Theme) {       
+        if let Some(section) = &self.section {
+            renderer.draw(crate::render::DrawCommand::Text(section));
+        }
     }
 }

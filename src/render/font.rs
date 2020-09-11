@@ -89,7 +89,7 @@ impl TextRenderer {
     }
 
     /// Returns the (width, height) of the text's bounding rect
-    pub fn get_section_bounds(&mut self, section: wgpu_glyph::Section) -> (u32, u32) {
+    pub fn get_section_bounds(&mut self, section: &wgpu_glyph::Section) -> (u32, u32) {
         use wgpu_glyph::GlyphCruncher;
         let bounds = self.brush.glyph_bounds(section);
         
@@ -112,8 +112,8 @@ impl TextRenderer {
         ).unwrap();
     }
 
-    pub fn queue_section(&mut self, section: glyph_brush::OwnedSection) {       
-        self.brush.queue(&section);
+    pub fn queue_section(&mut self, section: &glyph_brush::OwnedSection) {       
+        self.brush.queue(section);
     }
 }
 

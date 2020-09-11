@@ -27,9 +27,9 @@ pub fn screen_space_to_draw_space(point: (i32, i32), window_dimensions: (u32, u3
 }
 
 /// Objects able to be drawn by the renderer
-pub enum DrawCommand {
+pub enum DrawCommand<'text> {
     /// Text as represented by a layed-out Section
-    Text(glyph_brush::OwnedSection),
+    Text(&'text glyph_brush::OwnedSection),
     /// A simple circle
     Circle {
         center: (i32, i32),

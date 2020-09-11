@@ -6,14 +6,35 @@ pub use stack::Stack;
 // but other views may be desired such as TabView, GridView, ScrollView, and so on
 pub trait View : crate::IntoViewElement {
     fn state(&self) -> crate::state::Shared<crate::state::State>;
+    /// Assigns the root view's state
     fn assign_state(&mut self, state: crate::state::State);
+    /// Assign a view's state by sharing a parent's state
+    fn share_state(&mut self, state: crate::state::Shared<crate::state::State>);
 
     fn children(&mut self) -> &mut Vec<crate::ViewElement>;
+
+    fn translate(&mut self, dx: i32, dy: i32);
+
+    fn init(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
+        for child in self.children() {
+            match child {
+                crate::ViewElement::Widget(widget) => {
+                    widget.init(text_renderer, theme);
+                }
+                crate::ViewElement::View(view) => {
+                    view.init(text_renderer, theme);
+                }
+            }
+        }
+    }
 
     fn layout(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme);
 
     fn render_width(&self) -> u32;
     fn render_height(&self) -> u32;
+    fn render_size(&self) -> (u32, u32) {
+        (self.render_width(), self.render_height())
+    }
 
     // TODO: Should views serve only as containers?
     // Implementing this as part of the trait will not allow otherwise.

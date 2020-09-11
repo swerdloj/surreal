@@ -67,6 +67,22 @@ impl Widget for Button {
         self.id
     }
 
+    fn translate(&mut self, dx: i32, dy: i32) {
+        self.bounds.x += dx;
+        self.bounds.y += dy;
+
+        if let Some(text) = &mut self.text {
+            text.translate(dx, dy);
+        }
+    }
+
+    fn init(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
+        // TODO: Adjust the button's size according to text (if text is too big)
+        if let Some(text) = &mut self.text {
+            text.init(text_renderer, theme);
+        }
+    }
+
     fn handle_event(&mut self, event: &Event, state: RefMut<State>) -> crate::EventResponse {
         match event {
             Event::MouseButtonDown { mouse_btn: sdl2::mouse::MouseButton::Left, x, y, .. } => {
@@ -96,12 +112,19 @@ impl Widget for Button {
         self.bounds.y = y;
 
         if let Some(text) = &mut self.text {
-            // TODO: Center the text within the button
-            text.place(x + 15, y + 15);
+            // TODO: Allow user to choose text's allignment
+            let (text_width, text_height) = text.bounds.dimensions();
+            text.place(x, y);
+
+            // FIXME: `place` doesn't seem like the proper location for this
+            text.translate(
+                (self.bounds.width / 2) as i32 - (text_width / 2) as i32, 
+                (self.bounds.height / 2) as i32 - (text_height / 2) as i32
+            )
         }
     }
 
-    fn render_size(&self, _text_renderer: &mut crate::render::font::TextRenderer, _theme: &crate::style::Theme) -> (u32, u32) {        
+    fn render_size(&self, _theme: &crate::style::Theme) -> (u32, u32) {        
         // TODO: Account for text size
         
         (self.bounds.width, self.bounds.height)

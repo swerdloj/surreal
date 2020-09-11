@@ -8,7 +8,7 @@ fn main() {
     // gtk suggests (see `clone!`): https://gtk-rs.org/docs-src/tutorial/closures
 
 
-    // TODO: Implement an Elm-like message system (and replace `State`?)
+    // TODO: Implement an Elm-like message system for cross-element communication
     let mut view = Stateful! {
         @State {
             counter: u32 = 0,
@@ -17,7 +17,7 @@ fn main() {
         VStack! {
             Button::new("text_button")
                 .text(Text::new("") // <-- Nested id is not needed
-                    .text("Button......")
+                    .text("Button")
                     .scale(40.0)
                     .color(Color::BLACK)
                 )
@@ -26,7 +26,7 @@ fn main() {
                 }),
 
             Text::new("text")
-                .text("This is a text widget with some text in it")
+                .text("This is a text widget with text inside")
                 .scale(30.0),
 
             Button::new("test")
@@ -48,10 +48,26 @@ fn main() {
             Button::new("test2")
                 .style(PrimitiveStyle::Rectangle),
 
-            Button::new("test3"),
-            
-            Button::new("test4")
-                .color(Color::new(0.2, 0.3, 0.8, 1.0)),
+            HStack! {
+                Button::new("test3"),
+                
+                Button::new("test4")
+                    .color(Color::new(0.2, 0.3, 0.8, 1.0))
+                    .text(Text::new("")
+                        .text("state")
+                        .scale(35.0)
+                    )
+                    .on_click(|mut state| {
+                        println!("{}", @counter);
+                    }),
+
+                Button::new("test5")
+                    .color(Color::LIGHT_GRAY),
+                Button::new("test_")
+                    .color(Color::LIGHT_GRAY),
+            },
+
+            Button::new("test6"),
         },
     };
 

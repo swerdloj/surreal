@@ -25,6 +25,10 @@ impl BoundingRect {
 
     // }
 
+    pub fn dimensions(&self) -> (u32, u32) {
+        (self.width, self.height)
+    }
+
     // TODO: Store this and calculate automatically. Require user to 
     // adjust BoundingRect via `rect.set_bounds()` which sets center
     pub fn center(&self) -> (i32, i32) {
