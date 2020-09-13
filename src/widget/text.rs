@@ -1,10 +1,13 @@
+use crate::state::State;
 use crate::view_element::*;
 
 use super::Widget;
 
-#[derive(IntoViewElement)]
-#[kind(Widget)]
-pub struct Text {
+use std::cell::RefMut;
+
+// #[derive(IntoViewElement)]
+// #[kind(Widget)]
+pub struct Text<Msg> {
     id: &'static str,
     text: String,
     font: String,
@@ -12,20 +15,26 @@ pub struct Text {
     color: Option<crate::Color>,
     pub bounds: crate::bounding_rect::BoundingRect,
 
+    message_handler: Option<Box<dyn FnMut(&mut Text<Msg>, &Msg, RefMut<State>)>>,
+
     section: Option<glyph_brush::OwnedSection>,
+
+    should_resize: bool,
 }
 
-impl Text {
+impl<Msg> Text<Msg> {
     pub fn new(id: &'static str) -> Self {
         Text {
             id,
             text: String::new(),
             font: String::from(""),
-            scale: 16.0,
+            // If negative, user did not set the scale -> use theme
+            scale: -1.0,
             color: None,
             bounds: crate::bounding_rect::BoundingRect::new(),
-
+            message_handler: None,
             section: None,
+            should_resize: false,
         }
     }
 
@@ -35,6 +44,9 @@ impl Text {
     }
 
     pub fn scale(mut self, scale: f32) -> Self {
+        if scale < 0.0 {
+            panic!("Text scale cannot be negative (Tried setting `{}` to scale {})", self.id, scale);
+        }
         self.scale = scale;
         self
     }
@@ -48,11 +60,26 @@ impl Text {
         self.color = Some(color);
         self
     }
+
+    pub fn message_handler<F: FnMut(&mut Text<Msg>, &Msg, RefMut<State>) + 'static>(mut self, handler: F) -> Self {
+        self.message_handler = Some(Box::new(handler));
+        self
+    }
+
+    pub fn set_text(&mut self, text: &str) {
+        self.text = text.to_owned();
+
+        self.should_resize = true;
+    }
 }
 
-impl Widget for Text {
+impl<Msg> Widget<Msg> for Text<Msg> where Msg: 'static{
     fn id(&self) -> &'static str {
         self.id
+    }
+
+    fn should_resize(&mut self) -> &mut bool {
+        &mut self.should_resize
     }
 
     fn translate(&mut self, dx: i32, dy: i32) {
@@ -73,13 +100,31 @@ impl Widget for Text {
         }
     }
 
+    fn handle_message(&mut self, message: &Msg, state: RefMut<State>) {
+        // Bypass the borrow checker to obtain second mutable reference
+        // FIXME: This exposes backend traits (Widget & IntoViewElement)
+        // TODO: See if there is an alternative solution without using unsafe
+        // NOTE: Regarding safety, nothing truly "unsafe" can happen here
+        let this = unsafe {
+            (self as *mut Text<Msg>).as_mut().unwrap()
+        };
+        
+        if let Some(handler) = &mut self.message_handler {
+            (handler)(this, message, state);
+        }
+    }
+
     fn init(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {       
-        // 1. Create section
+        // Create section
         let color = if let Some(color) = &self.color {
             color
         } else {
             &theme.colors.text
         };
+
+        if self.scale < 0.0 {
+            self.scale = theme.text.scale;
+        }
 
         let text = wgpu_glyph::Text::new(&self.text)
             .with_scale(self.scale)
@@ -95,11 +140,11 @@ impl Widget for Text {
 
         let (width, height) = text_renderer.get_section_bounds(&section);
         
-        // 2. Set widget bounds
+        // Set widget bounds
         self.bounds.width = width;
         self.bounds.height = height;
 
-        // 3. Store section
+        // Store section
         self.section = Some(section.to_owned());
     }
 
@@ -112,5 +157,11 @@ impl Widget for Text {
         if let Some(section) = &self.section {
             renderer.draw(crate::render::DrawCommand::Text(section));
         }
+    }
+}
+
+impl<Msg> IntoViewElement<Msg> for Text<Msg> where Msg: 'static {
+    fn into_element(self) -> ViewElement<Msg> {
+        ViewElement::Widget(Box::new(self))
     }
 }

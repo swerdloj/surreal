@@ -112,7 +112,7 @@ impl TextRenderer {
         ).unwrap();
     }
 
-    pub fn queue_section(&mut self, section: &glyph_brush::OwnedSection) {       
+    pub fn queue_section(&mut self, section: &glyph_brush::OwnedSection) {   
         self.brush.queue(section);
     }
 }

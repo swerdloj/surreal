@@ -3,15 +3,15 @@ use crate::view::View;
 use sdl2::event::{Event, WindowEvent};
 use wgpu::*;
 
-struct sdl {
+struct WindowSystem {
     pub context: sdl2::Sdl,
-    video_subsystem: sdl2::VideoSubsystem,
+    _video_subsystem: sdl2::VideoSubsystem,
     window: sdl2::video::Window,
 }
 
-struct gpu {
+struct GraphicsDevice {
     render_surface: Surface,
-    adapter: Adapter,
+    _adapter: Adapter,
     pub device: Device,
     pub queue: Queue,
     sc_desc: SwapChainDescriptor,
@@ -47,8 +47,8 @@ impl Default for ApplicationSettings {
 }
 
 pub struct Application {
-    sdl: sdl,
-    gpu: gpu,
+    sdl: WindowSystem,
+    gpu: GraphicsDevice,
 
     timer: crate::timing::Timer,
 
@@ -99,7 +99,7 @@ impl Application {
         self.gpu.swap_chain = self.gpu.device.create_swap_chain(&self.gpu.render_surface, &self.gpu.sc_desc);
     }
 
-    pub fn run(&mut self, view: &mut dyn View) {
+    pub fn run<Msg: 'static>(&mut self, view: &mut dyn View<Msg>) {
         let mut event_pump = self.sdl.context.event_pump().unwrap();
         
         let mut text_renderer = crate::render::font::TextRenderer::from_fonts(
@@ -108,7 +108,9 @@ impl Application {
             crate::TEXTURE_FORMAT
         );
 
-        view.init(&mut text_renderer, &self.global_theme);
+        let mut message_queue = crate::MessageQueue::new();
+
+        view._init(&mut text_renderer, &self.global_theme);
         view.layout(&mut text_renderer, &self.global_theme);
 
         // TODO: Account for when the view changes
@@ -148,7 +150,16 @@ impl Application {
                     }
                 }
 
-                view.propogate_event(&event);
+                view.propogate_event(&event, &mut message_queue);
+            }
+
+            for message in message_queue.drain() {
+                view.propogate_message(&message);
+            }
+
+            if view.should_resize() {
+                view._init(&mut renderer.text_renderer, &self.global_theme);
+                view.layout(&mut renderer.text_renderer, &self.global_theme);
             }
 
             // FIXME: wgpu panics at "Outdated" when the render surface changes (on window minimize)
@@ -162,7 +173,7 @@ impl Application {
         }
     }
 
-    fn render_view(&mut self, renderer: &mut crate::render::Renderer, view: &mut dyn View) {
+    fn render_view<Msg: 'static>(&mut self, renderer: &mut crate::render::Renderer, view: &mut dyn View<Msg>) {
         let frame = self.gpu.swap_chain.get_current_frame().unwrap();
                 
         let mut encoder = self.gpu.device.create_command_encoder(&CommandEncoderDescriptor {
@@ -202,7 +213,7 @@ impl Application {
     }
 }
 
-fn init_sdl2(title: &str, width: u32, height: u32, resizable: bool) -> sdl {
+fn init_sdl2(title: &str, width: u32, height: u32, resizable: bool) -> WindowSystem {
     let sdl2_context = sdl2::init().unwrap();
     let video_subsystem = sdl2_context.video().unwrap();
 
@@ -226,14 +237,14 @@ fn init_sdl2(title: &str, width: u32, height: u32, resizable: bool) -> sdl {
     // Title-bar contains the minimize, maximize, and exit buttons
     window.set_minimum_size(10, 10).unwrap();
 
-    sdl {
+    WindowSystem {
         context: sdl2_context,
-        video_subsystem,
+        _video_subsystem: video_subsystem,
         window,
     }
 }
 
-async fn init_wgpu(window: &sdl2::video::Window) -> gpu {
+async fn init_wgpu(window: &sdl2::video::Window) -> GraphicsDevice {
     let (width, height) = window.size();
 
     let instance = Instance::new(BackendBit::PRIMARY);
@@ -266,9 +277,9 @@ async fn init_wgpu(window: &sdl2::video::Window) -> gpu {
 
     let swap_chain = device.create_swap_chain(&render_surface, &sc_desc);
 
-    gpu {
+    GraphicsDevice {
         render_surface,
-        adapter,
+        _adapter: adapter,
         device,
         queue,
         sc_desc,

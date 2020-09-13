@@ -8,21 +8,23 @@ use sdl2::event::Event;
 
 use super::Widget;
 
-#[derive(IntoViewElement)]
-#[kind(Widget)]
-pub struct Button {
+// #[derive(IntoViewElement)]
+// #[kind(Widget)]
+pub struct Button<Msg> {
     id: &'static str,
     bounds: BoundingRect,
-    text: Option<super::Text>,
-    on_click: Option<Box<dyn FnMut(RefMut<State>)>>,
+    text: Option<super::Text<Msg>>,
+    on_click: Option<Box<dyn FnMut(RefMut<State>) -> Msg>>,
     color: Option<crate::Color>,
     style: Option<crate::style::PrimitiveStyle>,
 
     // Register click only when mouse-down *and* mouse-up occur within bounds
     mouse_down_in_bounds: bool,
+
+    should_resize: bool,
 }
 
-impl Button {
+impl<Msg> Button<Msg> {
     pub fn new(id: &'static str) -> Self {
         let mut bounds = BoundingRect::new();
 
@@ -38,15 +40,16 @@ impl Button {
             color: None,
             style: None,
             mouse_down_in_bounds: false,
+            should_resize: false,
         }
     }
 
-    pub fn on_click<F: FnMut(RefMut<State>) + 'static>(mut self, cb: F) -> Self {
+    pub fn on_click<F: FnMut(RefMut<State>) -> Msg + 'static>(mut self, cb: F) -> Self {
         self.on_click = Some(Box::new(cb));
         self
     }
 
-    pub fn text(mut self, text: super::Text) -> Self {
+    pub fn text(mut self, text: super::Text<Msg>) -> Self {
         self.text = Some(text);
         self
     }
@@ -62,9 +65,13 @@ impl Button {
     }
 }
 
-impl Widget for Button {
+impl<Msg> Widget<Msg> for Button<Msg> where Msg: 'static {
     fn id(&self) -> &'static str {
         self.id
+    }
+
+    fn should_resize(&mut self) -> &mut bool {
+        &mut self.should_resize
     }
 
     fn translate(&mut self, dx: i32, dy: i32) {
@@ -83,7 +90,7 @@ impl Widget for Button {
         }
     }
 
-    fn handle_event(&mut self, event: &Event, state: RefMut<State>) -> crate::EventResponse {
+    fn handle_event(&mut self, event: &Event, state: RefMut<State>, messages: &mut crate::MessageQueue<Msg>) -> crate::EventResponse {
         match event {
             Event::MouseButtonDown { mouse_btn: sdl2::mouse::MouseButton::Left, x, y, .. } => {
                 if self.bounds.contains(*x, *y) {
@@ -95,8 +102,8 @@ impl Widget for Button {
 
             Event::MouseButtonUp { mouse_btn: sdl2::mouse::MouseButton::Left, x, y, .. } => {
                 if self.mouse_down_in_bounds && self.bounds.contains(*x, *y) {
-                    if let Some(cb) = &mut self.on_click {
-                        (cb)(state);
+                    if let Some(on_click) = &mut self.on_click {
+                        messages.push((on_click)(state));
                     }
                 }
                 
@@ -171,5 +178,11 @@ impl Widget for Button {
         if let Some(text) = &self.text {
             text.render(renderer, theme);
         }
+    }
+}
+
+impl<Msg> IntoViewElement<Msg> for Button<Msg> where Msg: 'static {
+    fn into_element(self) -> ViewElement<Msg> {
+        ViewElement::Widget(Box::new(self))
     }
 }

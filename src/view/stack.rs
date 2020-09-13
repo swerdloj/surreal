@@ -1,32 +1,39 @@
 use crate::state::{Shared, State, make_shared};
-use crate::Orientation;
+use crate::{Orientation, Alignment};
 use crate::view_element::*;
 
-#[derive(IntoViewElement)]
-#[kind(View)]
-pub struct Stack {
+// #[derive(IntoViewElement)]
+// #[kind(View)]
+pub struct Stack<Msg> {
     orientation: Orientation,
+    alignment: Option<Alignment>,
     state: Option<Shared<State>>,
     // TODO: Children should be an ordered hashmap of (id -> element)
     // This would also enforce unique element ids
-    children: Vec<ViewElement>,
+    children: Vec<ViewElement<Msg>>,
 
     bounds: crate::bounding_rect::BoundingRect,
 }
 
-impl Stack {
-    pub fn new(orientation: Orientation, children: Vec<ViewElement>) -> Self {
+impl<Msg> Stack<Msg> {
+    pub fn new(orientation: Orientation, children: Vec<ViewElement<Msg>>) -> Self {
         Stack {
             orientation,
+            alignment: None,
             state: None,
             children,
 
             bounds: crate::bounding_rect::BoundingRect::new(),
         }
     }
+
+    pub fn alignment(mut self, alignment: Alignment) -> Self {
+        self.alignment = Some(alignment);
+        self
+    }
 }
 
-impl super::View for Stack {
+impl<Msg> super::View<Msg> for Stack<Msg> where Msg: 'static{
     fn share_state(&mut self, state: Shared<State>) {
         self.state = Some(state);
     }
@@ -46,12 +53,21 @@ impl super::View for Stack {
         self.state = Some(shared_state);
     }
 
+    fn init(&mut self, _text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
+        if let Some(_alignment) = &self.alignment {
+            return;
+        } else {
+            self.alignment = Some(theme.default_alignment);
+        }
+    }
+
     // TODO: All child views should have clones of the root's `State` (and no `Option`)
     fn state(&self) -> Shared<State> {
         self.state.as_ref().unwrap().clone()
     }
 
     // TODO: Differentiate view & widget padding
+    // TODO: Utilize alignment
     fn layout(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
         let mut current_x = 0;
         let mut current_y = 0;
@@ -93,7 +109,7 @@ impl super::View for Stack {
                 
                 ViewElement::Widget(widget) => {
                     widget.place(current_x as i32, current_y as i32);
-                    println!("Placing {} at ({}, {})", widget.id(), current_x, current_y);
+                    // println!("Placing {} at ({}, {})", widget.id(), current_x, current_y);
                     
                     let size = widget.render_size(theme);
                     width = size.0; 
@@ -149,8 +165,14 @@ impl super::View for Stack {
         self.bounds.height
     }
 
-    fn children(&mut self) -> &mut Vec<crate::ViewElement> {
+    fn children(&mut self) -> &mut Vec<crate::ViewElement<Msg>> {
         &mut self.children
+    }
+}
+
+impl<Msg> IntoViewElement<Msg> for Stack<Msg> where Msg: 'static {
+    fn into_element(self) -> ViewElement<Msg> {
+        ViewElement::View(Box::new(self))
     }
 }
 

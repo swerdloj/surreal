@@ -20,7 +20,7 @@ pub mod prelude {
     pub use macros::Stateful;
 
     pub use crate::{
-        style::*,
+        style::{Theme, DEFAULT_THEME, PrimitiveStyle},
         application::{Application, ApplicationSettings},
         state::State,
         widget::*,
@@ -39,6 +39,24 @@ pub mod prelude {
 pub mod view_element {
     pub use macros::IntoViewElement;
     pub use crate::{IntoViewElement, ViewElement};
+}
+
+pub struct MessageQueue<Msg> {
+    queue: Vec<Msg>,
+}
+
+impl<Msg> MessageQueue<Msg> {
+    fn new() -> Self {
+        Self {queue: Vec::new()}
+    }
+
+    pub fn push(&mut self, message: Msg) {
+        self.queue.push(message);
+    }
+
+    fn drain(&mut self) -> std::vec::Drain<Msg> {
+        self.queue.drain(..)
+    }
 }
 
 pub enum EventResponse {
@@ -98,6 +116,7 @@ impl Into<wgpu::Color> for Color {
 }
 
 /// Element alignment
+#[derive(Copy, Clone)]
 pub enum Alignment {
     Left,
     Right,
@@ -110,11 +129,11 @@ pub enum Orientation {
     Horizontal,
 }
 
-pub enum ViewElement {
-    Widget(Box<dyn crate::widget::Widget>),
-    View(Box<dyn crate::view::View>),
+pub enum ViewElement<Msg> {
+    Widget(Box<dyn crate::widget::Widget<Msg>>),
+    View(Box<dyn crate::view::View<Msg>>),
 }
 
-pub trait IntoViewElement {
-    fn into_element(self) -> ViewElement;
+pub trait IntoViewElement<Msg> {
+    fn into_element(self) -> ViewElement<Msg>;
 }

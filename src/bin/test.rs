@@ -3,6 +3,11 @@ extern crate surreal;
 
 use surreal::prelude::*;
 
+enum Message {
+    UpdateCounter,
+    None,
+}
+
 fn main() {
     // TODO: Consider giving users the option of cloning `Shared<T>`s like 
     // gtk suggests (see `clone!`): https://gtk-rs.org/docs-src/tutorial/closures
@@ -18,7 +23,6 @@ fn main() {
             Button::new("text_button")
                 .text(Text::new("") // <-- Nested id is not needed
                     .text("Button")
-                    .scale(40.0)
                     .color(Color::BLACK)
                 )
                 .style(PrimitiveStyle::RoundedRectangle {
@@ -29,10 +33,21 @@ fn main() {
                 .text("This is a text widget with text inside")
                 .scale(30.0),
 
+            Text::new("counter_text")
+                .text("Counter: 0")
+                .scale(50.0)
+                .message_handler(|this, message, mut state| {
+                    if let Message::UpdateCounter = message {
+                        this.set_text(&format!("Counter: {}", @counter));
+                    }
+                }),
+
             Button::new("test")
                 .on_click(|mut state| {
                     @counter += 1;
                     println!("Presses: {}", @counter);
+
+                    Message::UpdateCounter
                 })
                 .text(Text::new("")
                     .text("+")
@@ -59,16 +74,19 @@ fn main() {
                     )
                     .on_click(|mut state| {
                         println!("{}", @counter);
+                        
+                        Message::None
                     }),
 
                 Button::new("test5")
                     .color(Color::LIGHT_GRAY),
-                Button::new("test_")
+                Button::new("test6")
                     .color(Color::LIGHT_GRAY),
             },
 
-            Button::new("test6"),
-        },
+            Button::new("test7"),
+        }
+        .alignment(Alignment::Center),
     };
 
     // NOTE: The extra '../' here is because this is in the '/bin' folder

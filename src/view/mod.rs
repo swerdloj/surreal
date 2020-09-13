@@ -4,18 +4,26 @@ pub use stack::Stack;
 
 // VStack, HStack, ListView, and more can all be created using just the `Stack` struct,
 // but other views may be desired such as TabView, GridView, ScrollView, and so on
-pub trait View : crate::IntoViewElement {
+pub trait View<Msg> : crate::IntoViewElement<Msg> where Msg: 'static {
     fn state(&self) -> crate::state::Shared<crate::state::State>;
     /// Assigns the root view's state
     fn assign_state(&mut self, state: crate::state::State);
     /// Assign a view's state by sharing a parent's state
     fn share_state(&mut self, state: crate::state::Shared<crate::state::State>);
 
-    fn children(&mut self) -> &mut Vec<crate::ViewElement>;
+    fn children(&mut self) -> &mut Vec<crate::ViewElement<Msg>>;
 
     fn translate(&mut self, dx: i32, dy: i32);
 
-    fn init(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
+    /// This function is called when views are initialized. Use this to implement the theme defaults.
+    fn init(&mut self, _text_renderer: &mut crate::render::font::TextRenderer, _theme: &crate::style::Theme) {
+
+    }
+
+    // FIXME: Is there any way to prevent this from being replaced?
+    /// The default init function for views. Do not implement this, use `View::init()` instead
+    fn _init(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
+        self.init(text_renderer, theme);
         for child in self.children() {
             match child {
                 crate::ViewElement::Widget(widget) => {
@@ -34,6 +42,24 @@ pub trait View : crate::IntoViewElement {
     fn render_height(&self) -> u32;
     fn render_size(&self) -> (u32, u32) {
         (self.render_width(), self.render_height())
+    }
+
+    fn should_resize(&mut self) -> bool {
+        let mut should_resize = false;
+        for child in self.children() {
+            match child {
+                crate::ViewElement::Widget(widget) => {
+                    let should = widget.should_resize();
+                    should_resize = should_resize || *should;
+                    *should = false;
+                }
+                crate::ViewElement::View(view) => {
+                    should_resize = should_resize || view.should_resize();
+                }
+            }
+        }
+
+        should_resize
     }
 
     // TODO: Should views serve only as containers?
@@ -60,18 +86,33 @@ pub trait View : crate::IntoViewElement {
         renderer.renderer.text_renderer.render_queue(renderer.device, renderer.target, renderer.encoder, renderer.window_dimensions.0, renderer.window_dimensions.1);
     }
 
-    fn propogate_event(&mut self, event: &sdl2::event::Event) {
+    fn propogate_event(&mut self, event: &sdl2::event::Event, message_queue: &mut crate::MessageQueue<Msg>) {
         use crate::ViewElement::*;
 
         let state = self.state();
         for child in self.children() {
             match child {
                 View(view) => {
-                    view.propogate_event(event);
+                    view.propogate_event(event, message_queue);
                 }
 
                 Widget(widget) => {
-                    widget.handle_event(event, state.clone().borrow_mut());
+                    widget.handle_event(event, state.clone().borrow_mut(), message_queue);
+                }
+            }
+        }
+    }
+
+    fn propogate_message(&mut self, message: &Msg) {
+        let state = self.state();
+        for child in self.children() {
+            match child {
+                crate::ViewElement::View(view) => {
+                    view.propogate_message(message);
+                }
+
+                crate::ViewElement::Widget(widget) => {
+                    widget.handle_message(message, state.clone().borrow_mut());
                 }
             }
         }

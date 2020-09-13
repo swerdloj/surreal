@@ -47,6 +47,8 @@ pub const DEFAULT_THEME: Theme = Theme {
         horizontal: 20,
     },
 
+    default_alignment: crate::Alignment::Center,
+
     widget_padding: Padding {
         vertical: 10,
         horizontal: 20,
@@ -57,6 +59,10 @@ pub const DEFAULT_THEME: Theme = Theme {
         secondary: Color::DARK_GRAY,
         background: Color::AUBERGINE,
         text: Color::ALMOST_WHITE,
+    },
+
+    text: Text {
+        scale: 40.0
     },
 
     widget_styles: Widgets {
@@ -70,8 +76,10 @@ pub const DEFAULT_THEME: Theme = Theme {
 
 pub struct Theme {
     pub view_padding: Padding,
+    pub default_alignment: crate::Alignment,
     pub widget_padding: Padding,
     pub colors: Colors,
+    pub text: Text,
 
     pub widget_styles: Widgets,
 }
@@ -85,6 +93,10 @@ pub enum PrimitiveStyle {
     RoundedRectangle {
         roundness: f32,
     },
+}
+
+pub struct Text {
+    pub scale: f32,
 }
 
 pub struct Widgets {

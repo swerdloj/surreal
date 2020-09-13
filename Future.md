@@ -21,6 +21,8 @@
 - Can do in HTML
   - Website format (look into GitHub sites)
   - Look into format like https://bevyengine.org/community/
+    - https://pages.github.com/
+    - Can use custom domain at some point
   - Should show future potential
     - Encourage contributions
 - First build basic feature set

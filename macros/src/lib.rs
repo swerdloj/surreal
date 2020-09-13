@@ -272,13 +272,38 @@ pub fn derive_into_view_element(input: TokenStream) -> TokenStream {
     };
     
     let name = derive_input.ident;
-    let expanded = quote! {
-        impl IntoViewElement for #name {
-            fn into_element(self) -> ViewElement {
-                ViewElement::#kind(Box::new(self))
+    let generics = derive_input.generics;
+
+    // TODO: Everytng below here needs to be fixed
+
+    let mut has_generic = false;
+    for generic in &generics.params {
+        if let syn::GenericParam::Type(_) = generic {
+            has_generic = true;
+        }
+    }
+
+    let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
+
+    let expanded = if has_generic {
+        quote! {
+            impl #impl_generics IntoViewElement #impl_generics for #name #type_generics #where_clause {
+                fn into_element(self) -> ViewElement #impl_generics {
+                    ViewElement::#kind(Box::new(self))
+                }
+            }
+        }
+    } else {
+        quote! {
+            impl<Msg> IntoViewElement<Msg> for #name #type_generics #where_clause {
+                fn into_element(self) -> ViewElement<Msg> {
+                    ViewElement::#kind(Box::new(self))
+                }
             }
         }
     };
+        
+    //println!("{}", expanded.to_string());
 
     expanded.into()
 }
