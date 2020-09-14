@@ -66,7 +66,7 @@ pub const DEFAULT_THEME: Theme = Theme {
     },
 
     widget_styles: Widgets {
-        buttons: PrimitiveStyle::RoundedRectangle {
+        buttons: Buttons {
             roundness: 50.0,
         },
     },
@@ -99,8 +99,12 @@ pub struct Text {
     pub scale: f32,
 }
 
+pub struct Buttons {
+    pub roundness: f32,
+}
+
 pub struct Widgets {
-    pub buttons: PrimitiveStyle,
+    pub buttons: Buttons,
 }
 
 pub struct Padding {

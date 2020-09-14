@@ -16,7 +16,7 @@ pub struct Button<Msg> {
     text: Option<super::Text<Msg>>,
     on_click: Option<Box<dyn FnMut(RefMut<State>) -> Msg>>,
     color: Option<crate::Color>,
-    style: Option<crate::style::PrimitiveStyle>,
+    roundness: Option<f32>,
 
     // Register click only when mouse-down *and* mouse-up occur within bounds
     mouse_down_in_bounds: bool,
@@ -38,7 +38,7 @@ impl<Msg> Button<Msg> {
             text: None,
             on_click: None,
             color: None,
-            style: None,
+            roundness: None,
             mouse_down_in_bounds: false,
             should_resize: false,
         }
@@ -59,8 +59,12 @@ impl<Msg> Button<Msg> {
         self
     }
 
-    pub fn style(mut self, style: crate::style::PrimitiveStyle) -> Self {
-        self.style = Some(style);
+    pub fn roundness(mut self, roundness: f32) -> Self {
+        if roundness < 0.0 || roundness > 100.0 {
+            panic!("Roundness must be between 0 and 100 (percent). `{}` got `{}`", self.id, roundness);
+        }
+
+        self.roundness = Some(roundness);
         self
     }
 }
@@ -84,10 +88,19 @@ impl<Msg> Widget<Msg> for Button<Msg> where Msg: 'static {
     }
 
     fn init(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
+        if self.roundness.is_none() {
+            self.roundness = Some(theme.widget_styles.buttons.roundness);
+        }
+
+        if self.color.is_none() {
+            self.color = Some(theme.colors.primary);
+        }
+        
         // TODO: Adjust the button's size according to text (if text is too big)
         if let Some(text) = &mut self.text {
             text.init(text_renderer, theme);
         }
+
     }
 
     fn handle_event(&mut self, event: &Event, state: RefMut<State>, messages: &mut crate::MessageQueue<Msg>) -> crate::EventResponse {
@@ -133,46 +146,26 @@ impl<Msg> Widget<Msg> for Button<Msg> where Msg: 'static {
 
     fn render_size(&self, _theme: &crate::style::Theme) -> (u32, u32) {        
         // TODO: Account for text size
-        
         (self.bounds.width, self.bounds.height)
     }
 
     fn render(&self, renderer: &mut crate::render::ContextualRenderer, theme: &crate::style::Theme) {        
-        let color = if let Some(color) = self.color {
-            color
+        // TODO: Renderer can create draw commands using just the bounding_rect + style
+        if *self.roundness.as_ref().unwrap() == 0.0 {
+            renderer.draw(crate::render::DrawCommand::Rect {
+                top_left: self.bounds.top_left(),
+                width: self.bounds.width,
+                height: self.bounds.height,
+                color: self.color.unwrap(),
+            });
         } else {
-            theme.colors.primary
-        };
-
-        let style = if let Some(style) = self.style {
-            style
-        } else {
-            theme.widget_styles.buttons
-        };
-
-        // TODO: Renderer can do this itself using just the bounding_rect + style
-        match style {
-            // TODO: Might want a CircleButton instead and not allow text
-            crate::style::PrimitiveStyle::Circle => {
-                todo!()
-            }
-            crate::style::PrimitiveStyle::Rectangle => {
-                    renderer.draw(crate::render::DrawCommand::Rect {
-                    top_left: self.bounds.top_left(),
-                    width: self.bounds.width,
-                    height: self.bounds.height,
-                    color,
-                });
-            }
-            crate::style::PrimitiveStyle::RoundedRectangle { roundness } => {
-                renderer.draw(crate::render::DrawCommand::RoundedRect {
-                    top_left: self.bounds.top_left(),
-                    width: self.bounds.width,
-                    height: self.bounds.height,
-                    roundness_percent: roundness,
-                    color,
-                });
-            }
+            renderer.draw(crate::render::DrawCommand::RoundedRect {
+                top_left: self.bounds.top_left(),
+                width: self.bounds.width,
+                height: self.bounds.height,
+                roundness_percent: self.roundness.unwrap(),
+                color: self.color.unwrap(),
+            });
         }
 
         if let Some(text) = &self.text {

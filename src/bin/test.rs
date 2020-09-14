@@ -12,8 +12,11 @@ fn main() {
     // TODO: Consider giving users the option of cloning `Shared<T>`s like 
     // gtk suggests (see `clone!`): https://gtk-rs.org/docs-src/tutorial/closures
 
+    // TODO: Use this pattern instead of RefMut
+    // use std::borrow::BorrowMut;
+    // let borrow: &mut State = state.borrow_mut();
+    // (see github card)
 
-    // TODO: Implement an Elm-like message system for cross-element communication
     let mut view = Stateful! {
         @State {
             counter: u32 = 0,
@@ -25,9 +28,7 @@ fn main() {
                     .text("Button")
                     .color(Color::BLACK)
                 )
-                .style(PrimitiveStyle::RoundedRectangle {
-                    roundness: 100.0,
-                }),
+                .roundness(100.0),
 
             Text::new("text")
                 .text("This is a text widget with text inside")
@@ -61,7 +62,7 @@ fn main() {
                 .scale(50.0),
 
             Button::new("test2")
-                .style(PrimitiveStyle::Rectangle),
+                .roundness(0.0),
 
             HStack! {
                 Button::new("test3"),
@@ -74,7 +75,7 @@ fn main() {
                     )
                     .on_click(|mut state| {
                         println!("{}", @counter);
-                        
+
                         Message::None
                     }),
 

@@ -54,9 +54,8 @@ impl<Msg> super::View<Msg> for Stack<Msg> where Msg: 'static{
     }
 
     fn init(&mut self, _text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
-        if let Some(_alignment) = &self.alignment {
-            return;
-        } else {
+        if let Some(_alignment) = &self.alignment {} 
+        else {
             self.alignment = Some(theme.default_alignment);
         }
     }

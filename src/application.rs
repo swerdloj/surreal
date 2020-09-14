@@ -82,14 +82,11 @@ impl Application {
 
     // FIXME: This isn't the best solution, but I don't want to pass fonts into `run`
     fn take_fonts(&mut self) -> crate::render::font::IncludedFonts {
-        if let Some(_fonts) = &self.fonts {} else {
+        if self.fonts.is_none() {
             panic!("Fonts were already moved")
         }
 
-        let mut swap = None;
-        std::mem::swap(&mut self.fonts, &mut swap);
-
-        swap.unwrap()
+        self.fonts.take().unwrap()
     }
 
     fn resize_swap_chain(&mut self, width: u32, height: u32) {
@@ -142,7 +139,6 @@ impl Application {
                     }
 
                     Event::Window { win_event: WindowEvent::Minimized, .. } => self.is_minimized = true,
-
                     Event::Window { win_event: WindowEvent::Restored, .. } => self.is_minimized = false,
 
                     _ => {

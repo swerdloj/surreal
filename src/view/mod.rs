@@ -21,6 +21,7 @@ pub trait View<Msg> : crate::IntoViewElement<Msg> where Msg: 'static {
     }
 
     // FIXME: Is there any way to prevent this from being replaced?
+    // FIXME: The naming of this and `init` is dangerous
     /// The default init function for views. Do not implement this, use `View::init()` instead
     fn _init(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
         self.init(text_renderer, theme);
@@ -30,7 +31,7 @@ pub trait View<Msg> : crate::IntoViewElement<Msg> where Msg: 'static {
                     widget.init(text_renderer, theme);
                 }
                 crate::ViewElement::View(view) => {
-                    view.init(text_renderer, theme);
+                    view._init(text_renderer, theme);
                 }
             }
         }
