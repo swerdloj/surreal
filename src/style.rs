@@ -68,6 +68,7 @@ pub const DEFAULT_THEME: Theme = Theme {
     widget_styles: Widgets {
         buttons: Buttons {
             roundness: 50.0,
+            circle_button_radius: 50,
         },
     },
 };
@@ -101,6 +102,7 @@ pub struct Text {
 
 pub struct Buttons {
     pub roundness: f32,
+    pub circle_button_radius: u32,
 }
 
 pub struct Widgets {

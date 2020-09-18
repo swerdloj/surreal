@@ -21,6 +21,10 @@ use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream, Result};
 use syn::{parse_macro_input, DeriveInput, Error, Ident, Token, braced, Type, Expr};
 
+/////////////////////////////////////////////////////////////////////////////
+// Stateful Macro
+/////////////////////////////////////////////////////////////////////////////
+
 struct State {
     pub fields: Vec<(Ident, Type, Expr)>,
     pub map: std::collections::HashMap<String, (Ident, Type)>,
@@ -226,6 +230,8 @@ pub fn Stateful(input: TokenStream) -> TokenStream {
 }
 
 /////////////////////////////////////////////////////////////////////////////
+// Derive IntoViewelement
+/////////////////////////////////////////////////////////////////////////////
 
 struct DeriveArgs {
     pub kind: Ident,
@@ -246,6 +252,9 @@ impl Parse for DeriveArgs {
 /// - View
 /// - Component
 ///
+/// Note that the generic message type (`Msg`) is required.  
+/// If your type does not need generics, use `PhantomData<Msg>`.
+///
 /// Usage:
 /// ```
 /// use surreal::view_element::*;
@@ -253,9 +262,9 @@ impl Parse for DeriveArgs {
 /// 
 /// #[derive(IntoViewElement)]
 /// #[kind(Widget)]
-/// pub struct MyWidget {...}
+/// pub struct MyWidget<Msg> {...}
 ///
-/// impl Widget for MyWidget {...}
+/// impl<Msg> Widget<Msg> for MyWidget<Msg> {...}
 /// ```
 #[proc_macro_derive(IntoViewElement, attributes(kind))]
 pub fn derive_into_view_element(input: TokenStream) -> TokenStream {
@@ -272,38 +281,15 @@ pub fn derive_into_view_element(input: TokenStream) -> TokenStream {
     };
     
     let name = derive_input.ident;
-    let generics = derive_input.generics;
 
-    // TODO: Everytng below here needs to be fixed
-
-    let mut has_generic = false;
-    for generic in &generics.params {
-        if let syn::GenericParam::Type(_) = generic {
-            has_generic = true;
-        }
-    }
-
-    let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
-
-    let expanded = if has_generic {
-        quote! {
-            impl #impl_generics IntoViewElement #impl_generics for #name #type_generics #where_clause {
-                fn into_element(self) -> ViewElement #impl_generics {
-                    ViewElement::#kind(Box::new(self))
-                }
-            }
-        }
-    } else {
-        quote! {
-            impl<Msg> IntoViewElement<Msg> for #name #type_generics #where_clause {
-                fn into_element(self) -> ViewElement<Msg> {
-                    ViewElement::#kind(Box::new(self))
-                }
+    // TODO: Should generics always be the same? Are there any other cases?
+    let expanded = quote! {
+        impl<M> IntoViewElement<M> for #name <M> where M: 'static {
+            fn into_element(self) -> ViewElement<M> {
+                ViewElement::#kind(Box::new(self))
             }
         }
     };
         
-    //println!("{}", expanded.to_string());
-
     expanded.into()
 }

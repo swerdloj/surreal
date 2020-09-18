@@ -5,8 +5,53 @@ use super::Widget;
 
 use std::cell::RefMut;
 
-// #[derive(IntoViewElement)]
-// #[kind(Widget)]
+// TODO: If this isn't use anywhere else later on, consider moving this type to `circle_button.rs`
+pub struct TextCharacter<Msg> {
+    character: char,
+    font: String,
+    scale: f32,
+    color: Option<crate::Color>,
+    _phantom_marker: std::marker::PhantomData<Msg>,
+}
+
+impl<Msg> TextCharacter<Msg> {
+    pub fn font(mut self, font: &str) -> Self {
+        self.font = font.to_owned();
+        self
+    }
+
+    // TODO: Check if valid scale
+    pub fn scale(mut self, scale: f32) -> Self {
+        self.scale = scale;
+        self
+    }
+
+    pub fn color(mut self, color: crate::Color) -> Self {
+        self.color = Some(color);
+        self
+    }
+
+    // TODO: Consider just implementing `Into<Text>`
+    pub(crate) fn into_text(self) -> Text<Msg> {
+        let mut text = Text::new("__from_TextCharacter")
+            .text(&self.character.to_string())
+            .font(&self.font);
+        
+        if self.scale >= 0.0 {
+            text = text.scale(self.scale);
+        }
+
+        if let Some(color) = self.color {
+            text = text.color(color);
+        }
+
+        text
+    }
+}
+
+
+#[derive(IntoViewElement)]
+#[kind(Widget)]
 pub struct Text<Msg> {
     id: &'static str,
     text: String,
@@ -35,6 +80,17 @@ impl<Msg> Text<Msg> {
             message_handler: None,
             section: None,
             should_resize: false,
+        }
+    }
+
+    /// Descriptor for a single character. For use with `CircleButton`.
+    pub fn character(character: char) -> TextCharacter<Msg> {
+        TextCharacter {
+            character,
+            font: String::from(""),
+            scale: -1.0,
+            color: None,
+            _phantom_marker: std::marker::PhantomData,
         }
     }
 
@@ -157,11 +213,5 @@ impl<Msg> Widget<Msg> for Text<Msg> where Msg: 'static{
         if let Some(section) = &self.section {
             renderer.draw(crate::render::DrawCommand::Text(section));
         }
-    }
-}
-
-impl<Msg> IntoViewElement<Msg> for Text<Msg> where Msg: 'static {
-    fn into_element(self) -> ViewElement<Msg> {
-        ViewElement::Widget(Box::new(self))
     }
 }

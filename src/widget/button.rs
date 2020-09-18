@@ -8,8 +8,8 @@ use sdl2::event::Event;
 
 use super::Widget;
 
-// #[derive(IntoViewElement)]
-// #[kind(Widget)]
+#[derive(IntoViewElement)]
+#[kind(Widget)]
 pub struct Button<Msg> {
     id: &'static str,
     bounds: BoundingRect,
@@ -108,9 +108,8 @@ impl<Msg> Widget<Msg> for Button<Msg> where Msg: 'static {
             Event::MouseButtonDown { mouse_btn: sdl2::mouse::MouseButton::Left, x, y, .. } => {
                 if self.bounds.contains(*x, *y) {
                     self.mouse_down_in_bounds = true;
+                    return crate::EventResponse::Consume;
                 }
-
-                crate::EventResponse::Consume
             }
 
             Event::MouseButtonUp { mouse_btn: sdl2::mouse::MouseButton::Left, x, y, .. } => {
@@ -118,13 +117,16 @@ impl<Msg> Widget<Msg> for Button<Msg> where Msg: 'static {
                     if let Some(on_click) = &mut self.on_click {
                         messages.push((on_click)(state));
                     }
+                    self.mouse_down_in_bounds = false;
+                    return crate::EventResponse::Consume;
                 }
                 
                 self.mouse_down_in_bounds = false;
-                crate::EventResponse::Consume
             }
-            _ => crate::EventResponse::None,
+            _ => {}
         }
+
+        crate::EventResponse::None
     }
 
     fn place(&mut self, x: i32, y: i32) {
@@ -140,7 +142,7 @@ impl<Msg> Widget<Msg> for Button<Msg> where Msg: 'static {
             text.translate(
                 (self.bounds.width / 2) as i32 - (text_width / 2) as i32, 
                 (self.bounds.height / 2) as i32 - (text_height / 2) as i32
-            )
+            );
         }
     }
 
@@ -171,11 +173,5 @@ impl<Msg> Widget<Msg> for Button<Msg> where Msg: 'static {
         if let Some(text) = &self.text {
             text.render(renderer, theme);
         }
-    }
-}
-
-impl<Msg> IntoViewElement<Msg> for Button<Msg> where Msg: 'static {
-    fn into_element(self) -> ViewElement<Msg> {
-        ViewElement::Widget(Box::new(self))
     }
 }

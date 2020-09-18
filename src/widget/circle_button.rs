@@ -1,0 +1,192 @@
+use crate::bounding_rect::BoundingRect;
+use crate::state::State;
+use crate::view_element::*;
+
+use std::cell::RefMut;
+
+use super::{Widget, Text, Image};
+
+enum Contents<Msg> {
+    Char(Text<Msg>),
+    // TODO: This (once image support is added)
+    Image(Image),
+    None,
+}
+
+#[derive(IntoViewElement)]
+#[kind(Widget)]
+pub struct CircleButton<Msg> {
+    id: &'static str,
+    bounds: BoundingRect,
+    contents: Contents<Msg>,
+    on_click: Option<Box<dyn FnMut(RefMut<State>) -> Msg>>,
+    radius: u32,
+    color: Option<crate::Color>,
+    mouse_down_in_bounds: bool,
+    should_resize: bool,
+}
+
+impl<Msg> CircleButton<Msg> {
+    pub fn new(id: &'static str) -> Self {
+        Self {
+            id,
+            bounds: BoundingRect::new(),
+            contents: Contents::None,
+            on_click: None,
+            // Zero implies uninitialized
+            radius: 0,
+            color: None,
+            mouse_down_in_bounds: false,
+            should_resize: false,
+        }
+    }
+
+    pub fn on_click<F: FnMut(RefMut<State>) -> Msg + 'static>(mut self, on_click: F) -> Self {
+        self.on_click = Some(Box::new(on_click));
+        self
+    }
+
+    pub fn color(mut self, color: crate::Color) -> Self {
+        self.color = Some(color);
+        self
+    }
+
+    pub fn radius(mut self, radius: u32) -> Self {
+        self.radius = radius;
+        self
+    }
+
+    pub fn character(mut self, character: crate::widget::text::TextCharacter<Msg>) -> Self {
+        self.contents = Contents::Char(character.into_text());
+        self
+    }
+
+    fn contains_point(&self, x: i32, y: i32) -> bool {
+        let center = self.bounds.center();
+
+        (((x - center.0).abs().pow(2) + (y - center.1).abs().pow(2)) as f32).sqrt() < self.radius as f32
+    }
+}
+
+impl<Msg> Widget<Msg> for CircleButton<Msg> where Msg: 'static {
+    fn id(&self) -> &'static str {
+        self.id
+    }
+
+    fn should_resize(&mut self) -> &mut bool {
+        &mut self.should_resize
+    }
+
+    fn place(&mut self, x: i32, y: i32) {
+        self.bounds.x = x;
+        self.bounds.y = y;
+
+        match &mut self.contents {
+            Contents::Char(text) => {
+                let (text_width, text_height) = text.bounds.dimensions();
+                text.place(x, y);
+
+                // FIXME: `place` doesn't seem like the proper location for this
+                text.translate(
+                (self.bounds.width / 2) as i32 - (text_width / 2) as i32, 
+                (self.bounds.height / 2) as i32 - (text_height / 2) as i32
+                );
+            }
+            Contents::Image(_image) => {
+                todo!();
+            }
+            Contents::None => {}
+        }
+    }
+
+    fn translate(&mut self, dx: i32, dy: i32) {
+        self.bounds.x += dx;
+        self.bounds.y += dy;
+
+        match &mut self.contents {
+            Contents::Char(text) => {
+                text.translate(dx, dy);
+            }
+            Contents::Image(_image) => {
+                todo!();
+            }
+            Contents::None => {}
+        }
+    }
+
+    fn init(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
+        match &mut self.contents {
+            Contents::Char(text) => {
+                text.init(text_renderer, theme);
+            }
+            Contents::Image(_image) => {
+                todo!();
+            }
+            Contents::None => {}
+        }
+
+        if self.color.is_none() {
+            self.color = Some(theme.colors.primary);
+        }
+
+        if self.radius == 0 {
+            self.radius = theme.widget_styles.buttons.circle_button_radius;
+        }
+
+
+        self.bounds.width = self.radius * 2;
+        self.bounds.height = self.radius * 2;
+    }
+
+    fn handle_event(&mut self, event: &sdl2::event::Event, state: std::cell::RefMut<crate::state::State>, message_queue: &mut crate::MessageQueue<Msg>) -> crate::EventResponse {
+        use sdl2::event::Event;
+        
+        match event {
+            Event::MouseButtonDown { mouse_btn: sdl2::mouse::MouseButton::Left, x, y, .. } => {
+                if self.contains_point(*x, *y) {
+                    self.mouse_down_in_bounds = true;
+                    return crate::EventResponse::Consume;
+                }
+            }
+
+            Event::MouseButtonUp { mouse_btn: sdl2::mouse::MouseButton::Left, x, y, .. } => {
+                if self.mouse_down_in_bounds && self.contains_point(*x, *y) {
+                    if let Some(on_click) = &mut self.on_click {
+                        message_queue.push((on_click)(state));
+                    }
+                    self.mouse_down_in_bounds = false;
+                    return crate::EventResponse::Consume;
+                }
+                
+                self.mouse_down_in_bounds = false;
+            }
+
+            _ => {}
+        }
+
+        crate::EventResponse::None
+    }
+
+    fn render_size(&self, _theme: &crate::style::Theme) -> (u32, u32) {
+        self.bounds.dimensions()
+    }
+
+    fn render(&self, renderer: &mut crate::render::ContextualRenderer, theme: &crate::style::Theme) {
+        renderer.draw(crate::render::DrawCommand::Circle {
+            center: self.bounds.center(),
+            radius: self.radius,
+            color: self.color.unwrap(),
+        });
+
+        match &self.contents {
+            Contents::Char(text) => {
+                text.render(renderer, theme);
+            }
+            Contents::Image(_image) => {
+                todo!();
+                // image.render(renderer, theme);
+            }
+            Contents::None => {}
+        }
+    }
+}

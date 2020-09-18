@@ -204,6 +204,12 @@ impl Application {
         // Render the entire view
         view.render(&mut renderer_with_context, &self.global_theme);
 
+        // This function should be called only once per frame
+        // This is so wgpu_glyph can cache the text, meaning this call should not be made inside `View`
+        // Using individual draw calls per `Section` raises CPU usage from <1% to >5% (>22% in debug build)
+        // NOTE: Placing this here satisfies the above, but sacrifices layering/ordering (see GitHub card)
+        renderer.text_renderer.render_queue(&self.gpu.device, &frame.output.view, &mut encoder, self.gpu.sc_desc.width, self.gpu.sc_desc.height);
+
         // Does everything requested by the ContextualRenderer
         self.gpu.queue.submit(Some(encoder.finish()));
     }

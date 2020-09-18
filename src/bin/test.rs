@@ -12,14 +12,9 @@ fn main() {
     // TODO: Consider giving users the option of cloning `Shared<T>`s like 
     // gtk suggests (see `clone!`): https://gtk-rs.org/docs-src/tutorial/closures
 
-    // TODO: Use this pattern instead of RefMut
-    // use std::borrow::BorrowMut;
-    // let borrow: &mut State = state.borrow_mut();
-    // (see github card)
-
     let mut view = Stateful! {
         @State {
-            counter: u32 = 0,
+            counter: i32 = 0,
         },
 
         VStack! {
@@ -34,6 +29,19 @@ fn main() {
                 .text("This is a text widget with text inside")
                 .scale(30.0),
 
+            CircleButton::new("circle_button")
+                .color(Color::LIGHT_GRAY)
+                .radius(40)
+                .character(Text::character('-')
+                    .color(Color::BLACK)
+                    .scale(100.0)
+                )
+                .on_click(|mut state| {
+                    @counter -= 1;
+
+                    Message::UpdateCounter
+                }),
+
             Text::new("counter_text")
                 .text("Counter: 0")
                 .scale(50.0)
@@ -46,7 +54,6 @@ fn main() {
             Button::new("test")
                 .on_click(|mut state| {
                     @counter += 1;
-                    println!("Presses: {}", @counter);
 
                     Message::UpdateCounter
                 })
