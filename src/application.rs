@@ -150,6 +150,8 @@ impl Application {
             }
 
             for message in message_queue.drain() {
+                // FIXME: I can't make `call_hook` part of `View`
+                crate::view::call_hook(view, &message);
                 view.propogate_message(&message);
             }
 

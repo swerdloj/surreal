@@ -12,6 +12,8 @@ pub struct Stack<Msg> {
     // This would also enforce unique element ids
     children: Vec<ViewElement<Msg>>,
 
+    hook: Option<super::ViewHook<Msg>>,
+
     bounds: crate::bounding_rect::BoundingRect,
 }
 
@@ -22,7 +24,7 @@ impl<Msg> Stack<Msg> {
             alignment: None,
             state: None,
             children,
-
+            hook: None,
             bounds: crate::bounding_rect::BoundingRect::new(),
         }
     }
@@ -63,6 +65,14 @@ impl<Msg> super::View<Msg> for Stack<Msg> where Msg: 'static{
     // TODO: All child views should have clones of the root's `State` (and no `Option`)
     fn state(&self) -> Shared<State> {
         self.state.as_ref().unwrap().clone()
+    }
+
+    fn set_hook(&mut self, hook: super::ViewHook<Msg>) {
+        self.hook = Some(hook);
+    }
+
+    fn get_hook(&self) -> Option<&super::ViewHook<Msg>> {
+        self.hook.as_ref()
     }
 
     // TODO: Differentiate view & widget padding

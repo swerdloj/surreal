@@ -8,7 +8,7 @@ pub use circle_button::CircleButton;
 pub use button::Button;
 pub use text::Text;
 
-pub trait Widget<Msg> : crate::IntoViewElement<Msg> where Msg: 'static {
+pub trait Widget<Msg> : crate::IntoViewElement<Msg> {
     fn id(&self) -> &'static str;
 
     fn handle_event(&mut self, _event: &sdl2::event::Event, _state: std::cell::RefMut<crate::state::State>, _message_queue: &mut crate::MessageQueue<Msg>) -> crate::EventResponse {

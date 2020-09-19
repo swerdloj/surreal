@@ -2,9 +2,11 @@ pub mod stack;
 
 pub use stack::Stack;
 
+pub type ViewHook<Msg> = fn(&mut dyn View<Msg>, &Msg);
+
 // VStack, HStack, ListView, and more can all be created using just the `Stack` struct,
 // but other views may be desired such as TabView, GridView, ScrollView, and so on
-pub trait View<Msg> : crate::IntoViewElement<Msg> where Msg: 'static {
+pub trait View<Msg> : crate::IntoViewElement<Msg> {
     fn state(&self) -> crate::state::Shared<crate::state::State>;
     /// Assigns the root view's state
     fn assign_state(&mut self, state: crate::state::State);
@@ -100,6 +102,7 @@ pub trait View<Msg> : crate::IntoViewElement<Msg> where Msg: 'static {
 
     fn propogate_message(&mut self, message: &Msg) {
         let state = self.state();
+
         for child in self.children() {
             match child {
                 crate::ViewElement::View(view) => {
@@ -112,4 +115,73 @@ pub trait View<Msg> : crate::IntoViewElement<Msg> where Msg: 'static {
             }
         }
     }
+
+    // FIXME: I want hook to be FnMut, but I can only do this if I require the
+    // function to come in here as Box<FnMut>.
+    // This would be fixed via generic parameters, but traits don't allow that.
+    fn set_hook(&mut self, hook: ViewHook<Msg>);
+    fn get_hook(&self) -> Option<&ViewHook<Msg>>;
+
+    // FIXME: This is what I want, not `call_hook`
+    // fn call_hook(&mut self, message: &Msg) where Msg: 'static {
+    //     if let Some(hook) = self.get_hook() {
+    //         (hook)(self, message);
+    //     }
+    // }
+}
+
+// TODO: Make this work (requires &'a to be static for some reason)
+pub trait ViewIntrospection<Msg>{
+    fn get_widget_by_id<'a, T: crate::widget::Widget<Msg>>(&'a mut self, id: &str) -> &'a mut Box<T>;
+}
+
+impl<Msg> ViewIntrospection<Msg> for dyn View<Msg> {
+    fn get_widget_by_id<'a, T: crate::widget::Widget<Msg>>(&'a mut self, id: &str) -> &'a mut Box<T> {
+        for child in self.children() {
+            match child {
+                crate::ViewElement::Widget(widget) => {
+                    if widget.id() == id {
+                        unsafe {
+                            // TODO: Add a type-check to ensure safety such as `Widget::type`
+                            return std::mem::transmute::<&mut Box<dyn crate::widget::Widget<Msg>>, &mut Box<T>>(widget);
+                        }
+                    }
+                }
+    
+                crate::ViewElement::View(view) => {
+                    return view.get_widget_by_id::<T>(id);
+                }
+            }
+        }
+    
+        panic!("No widget with id `{}` exists", id);
+    }
+}
+
+pub fn call_hook<Msg>(view: &mut dyn View<Msg>, message: &Msg) {
+    if let Some(hook) = view.get_hook() {
+        (hook)(view, message);
+    }
+}
+
+pub fn get_widget_by_id<'v, T: crate::widget::Widget<Msg>, Msg>(view: &'v mut dyn View<Msg>, id: &str) -> &'v mut T {
+    for child in view.children() {
+        match child {
+            crate::ViewElement::Widget(widget) => {
+                if widget.id() == id {
+                    unsafe {
+                        // TODO: Add a type-check to ensure safety such as `Widget::type`
+                        return std::mem::transmute::<&mut Box<dyn crate::widget::Widget<Msg>>, &mut Box<T>>(widget);
+                    }
+                }
+            }
+
+            crate::ViewElement::View(view) => {
+                // FIXME: Is this correct?
+                return get_widget_by_id::<T, Msg>(&mut (**view), id);
+            }
+        }
+    }
+
+    panic!("No widget with id `{}` exists", id);
 }
