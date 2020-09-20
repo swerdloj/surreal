@@ -121,41 +121,6 @@ pub trait View<Msg> : crate::IntoViewElement<Msg> {
     // This would be fixed via generic parameters, but traits don't allow that.
     fn set_hook(&mut self, hook: ViewHook<Msg>);
     fn get_hook(&self) -> Option<&ViewHook<Msg>>;
-
-    // FIXME: This is what I want, not `call_hook`
-    // fn call_hook(&mut self, message: &Msg) where Msg: 'static {
-    //     if let Some(hook) = self.get_hook() {
-    //         (hook)(self, message);
-    //     }
-    // }
-}
-
-// TODO: Make this work (requires &'a to be static for some reason)
-pub trait ViewIntrospection<Msg>{
-    fn get_widget_by_id<'a, T: crate::widget::Widget<Msg>>(&'a mut self, id: &str) -> &'a mut Box<T>;
-}
-
-impl<Msg> ViewIntrospection<Msg> for dyn View<Msg> {
-    fn get_widget_by_id<'a, T: crate::widget::Widget<Msg>>(&'a mut self, id: &str) -> &'a mut Box<T> {
-        for child in self.children() {
-            match child {
-                crate::ViewElement::Widget(widget) => {
-                    if widget.id() == id {
-                        unsafe {
-                            // TODO: Add a type-check to ensure safety such as `Widget::type`
-                            return std::mem::transmute::<&mut Box<dyn crate::widget::Widget<Msg>>, &mut Box<T>>(widget);
-                        }
-                    }
-                }
-    
-                crate::ViewElement::View(view) => {
-                    return view.get_widget_by_id::<T>(id);
-                }
-            }
-        }
-    
-        panic!("No widget with id `{}` exists", id);
-    }
 }
 
 pub fn call_hook<Msg>(view: &mut dyn View<Msg>, message: &Msg) {
@@ -164,7 +129,7 @@ pub fn call_hook<Msg>(view: &mut dyn View<Msg>, message: &Msg) {
     }
 }
 
-pub fn get_widget_by_id<'v, T: crate::widget::Widget<Msg>, Msg>(view: &'v mut dyn View<Msg>, id: &str) -> &'v mut T {
+pub fn get_widget_by_id<'a, 'b, T: crate::widget::Widget<Msg>, Msg>(view: &'a mut dyn View<Msg>, id: &str) -> &'b mut Box<T> where 'a: 'b{
     for child in view.children() {
         match child {
             crate::ViewElement::Widget(widget) => {

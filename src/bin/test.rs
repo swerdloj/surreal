@@ -97,16 +97,11 @@ fn main() {
         .alignment(Alignment::Center),
     };
 
-    // TODO: Create a new type for view introspection that exposes only what users need
-    // Accessing elements by id
-    // Adding/removing elements
-    // Adjust view parameters (padding, alignment, etc.)
     view.set_hook(|view, _message| {
         let test: &mut Text<_> = get_widget_by_id(view, "more_text");
         test.set_text("Hook");
 
-        // TODO: Get this to work (see `test()` below for better compiler errors)
-        // let test: &mut Text<_> = view.get_widget_by_id("more_text");
+        // let text: &mut Text<_> = view.get_widget_by_id("more_text");
 
         println!("This is from a hook with access to the view");
     });
@@ -126,8 +121,4 @@ fn main() {
     });
 
     app.run(&mut view);
-}
-
-fn test(view: &mut dyn View<Message>) {
-    let test: &mut Text<_> = view.get_widget_by_id("more_text");
 }

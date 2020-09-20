@@ -2,8 +2,8 @@ use crate::state::{Shared, State, make_shared};
 use crate::{Orientation, Alignment};
 use crate::view_element::*;
 
-// #[derive(IntoViewElement)]
-// #[kind(View)]
+#[derive(IntoViewElement)]
+#[kind(View)]
 pub struct Stack<Msg> {
     orientation: Orientation,
     alignment: Option<Alignment>,
@@ -176,12 +176,6 @@ impl<Msg> super::View<Msg> for Stack<Msg> where Msg: 'static{
 
     fn children(&mut self) -> &mut Vec<crate::ViewElement<Msg>> {
         &mut self.children
-    }
-}
-
-impl<Msg> IntoViewElement<Msg> for Stack<Msg> where Msg: 'static {
-    fn into_element(self) -> ViewElement<Msg> {
-        ViewElement::View(Box::new(self))
     }
 }
 

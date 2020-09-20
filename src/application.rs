@@ -148,7 +148,7 @@ impl Application {
 
                 view.propogate_event(&event, &mut message_queue);
             }
-
+            
             for message in message_queue.drain() {
                 // FIXME: I can't make `call_hook` part of `View`
                 crate::view::call_hook(view, &message);
