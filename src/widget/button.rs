@@ -69,7 +69,7 @@ impl<Msg> Button<Msg> {
     }
 }
 
-impl<Msg> Widget<Msg> for Button<Msg> where Msg: 'static {
+impl<Msg: EmptyMessage> Widget<Msg> for Button<Msg> where Msg: 'static {
     fn id(&self) -> &'static str {
         self.id
     }

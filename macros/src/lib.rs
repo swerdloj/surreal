@@ -233,13 +233,13 @@ pub fn Stateful(input: TokenStream) -> TokenStream {
 // Derive IntoViewelement
 /////////////////////////////////////////////////////////////////////////////
 
-struct DeriveArgs {
+struct ElementDeriveArgs {
     pub kind: Ident,
 }
 
-impl Parse for DeriveArgs {
+impl Parse for ElementDeriveArgs {
     fn parse(input: ParseStream) -> Result<Self> {
-        Ok(DeriveArgs {
+        Ok(Self {
             kind: input.parse()?
         })
     }
@@ -271,7 +271,7 @@ pub fn derive_into_view_element(input: TokenStream) -> TokenStream {
     let derive_input = parse_macro_input!(input as DeriveInput);
     
     let kind = if let Some(attr) = derive_input.attrs.get(0) {
-        if let Result::Ok(args) = attr.parse_args::<DeriveArgs>() {
+        if let Result::Ok(args) = attr.parse_args::<ElementDeriveArgs>() {
             args.kind
         } else {
             panic!("Failed to parse attribute `kind`\nUsage: `#[kind(Widget or View or Component)]`");
@@ -284,12 +284,59 @@ pub fn derive_into_view_element(input: TokenStream) -> TokenStream {
 
     // TODO: Should generics always be the same? Are there any other cases?
     let expanded = quote! {
-        impl<M> IntoViewElement<M> for #name <M> where M: 'static {
+        impl<M> IntoViewElement<M> for #name <M> where M: EmptyMessage + 'static {
             fn into_element(self) -> ViewElement<M> {
                 ViewElement::#kind(Box::new(self))
             }
         }
     };
         
+    expanded.into()
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Derive EmptyMessage
+/////////////////////////////////////////////////////////////////////////////
+
+struct MessageDeriveArgs {
+    pub empty: Ident,
+}
+
+impl Parse for MessageDeriveArgs {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self {
+            empty: input.parse()?
+        })
+    }
+}
+
+#[proc_macro_derive(EmptyMessage, attributes(empty))]
+pub fn derive_empty_message(input: TokenStream) -> TokenStream {
+    let derive_input = parse_macro_input!(input as DeriveInput);
+
+    let empty = if let Some(attr) = derive_input.attrs.get(0) {
+        if let Result::Ok(args) = attr.parse_args::<MessageDeriveArgs>() {
+            args.empty
+        } else {
+            panic!("Failed to parse attribute `empty`\nUsage: `#[empty(EmptyVariant)]`");
+        }
+    } else {
+        panic!("Missing attribute `empty`.\nUsage: `#[empty(EmptyVariant)]`");
+    };
+
+    let name = derive_input.ident;
+
+    let expanded = quote! {
+        impl EmptyMessage for #name {
+            fn is_message(&self) -> bool {
+                if let Self::#empty = self {
+                    false
+                } else {
+                    true
+                }
+            }
+        }
+    };
+
     expanded.into()
 }

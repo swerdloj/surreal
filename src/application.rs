@@ -96,7 +96,7 @@ impl Application {
         self.gpu.swap_chain = self.gpu.device.create_swap_chain(&self.gpu.render_surface, &self.gpu.sc_desc);
     }
 
-    pub fn run<Msg: 'static>(&mut self, view: &mut dyn View<Msg>) {
+    pub fn run<Msg: crate::EmptyMessage + 'static>(&mut self, view: &mut dyn View<Msg>) {
         let mut event_pump = self.sdl.context.event_pump().unwrap();
         
         let mut text_renderer = crate::render::font::TextRenderer::from_fonts(
@@ -108,7 +108,7 @@ impl Application {
         let mut message_queue = crate::MessageQueue::new();
 
         view._init(&mut text_renderer, &self.global_theme);
-        view.layout(&mut text_renderer, &self.global_theme);
+        view.layout(&mut text_renderer, &self.global_theme, true);
 
         // TODO: Account for when the view changes
         if self.fit_window_to_view {
@@ -157,7 +157,7 @@ impl Application {
 
             if view.should_resize() {
                 view._init(&mut renderer.text_renderer, &self.global_theme);
-                view.layout(&mut renderer.text_renderer, &self.global_theme);
+                view.layout(&mut renderer.text_renderer, &self.global_theme, true);
             }
 
             // FIXME: wgpu panics at "Outdated" when the render surface changes (on window minimize)
@@ -171,7 +171,7 @@ impl Application {
         }
     }
 
-    fn render_view<Msg: 'static>(&mut self, renderer: &mut crate::render::Renderer, view: &mut dyn View<Msg>) {
+    fn render_view<Msg: crate::EmptyMessage + 'static>(&mut self, renderer: &mut crate::render::Renderer, view: &mut dyn View<Msg>) {
         let frame = self.gpu.swap_chain.get_current_frame().unwrap();
                 
         let mut encoder = self.gpu.device.create_command_encoder(&CommandEncoderDescriptor {

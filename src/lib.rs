@@ -15,11 +15,10 @@ pub mod timing;
 pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
 
 
-/// Re-exports for easy library import via `use surreal::prelude::*;`
+/// Re-exports everything needed by users for easy library import via `use surreal::prelude::*;`
 pub mod prelude {
-    pub use macros::Stateful;
-
     pub use crate::{
+        surreal_macros::*,
         style::{Theme, DEFAULT_THEME, PrimitiveStyle},
         application::{Application, ApplicationSettings},
         state::State,
@@ -32,26 +31,50 @@ pub mod prelude {
         Orientation,
         ViewElement,
         IntoViewElement,
+        EmptyMessage,
+    };
+}
+
+/// Re-exports all macros related to surreal
+pub mod surreal_macros {
+    // Procedural macros
+    pub use macros::{
+        Stateful, 
+        EmptyMessage,
+    };
+
+    // Regular macros
+    pub use crate::{
+        VStack, 
+        HStack, 
+        State,
+        include_fonts,
     };
 }
 
 /// Types and derive macro required when using `#derive(IntoViewElement)`
 pub mod view_element {
     pub use macros::IntoViewElement;
-    pub use crate::{IntoViewElement, ViewElement};
+    pub use crate::{IntoViewElement, ViewElement, EmptyMessage};
 }
 
-pub struct MessageQueue<Msg> {
+pub trait EmptyMessage {
+    fn is_message(&self) -> bool;
+}
+
+pub struct MessageQueue<Msg : EmptyMessage> {
     queue: Vec<Msg>,
 }
 
-impl<Msg> MessageQueue<Msg> {
+impl<Msg: EmptyMessage> MessageQueue<Msg> {
     fn new() -> Self {
         Self {queue: Vec::new()}
     }
 
     pub fn push(&mut self, message: Msg) {
-        self.queue.push(message);
+        if message.is_message() {
+            self.queue.push(message);
+        }
     }
 
     fn drain(&mut self) -> std::vec::Drain<Msg> {
@@ -129,11 +152,11 @@ pub enum Orientation {
     Horizontal,
 }
 
-pub enum ViewElement<Msg> {
+pub enum ViewElement<Msg: EmptyMessage> {
     Widget(Box<dyn crate::widget::Widget<Msg>>),
     View(Box<dyn crate::view::View<Msg>>),
 }
 
-pub trait IntoViewElement<Msg> {
+pub trait IntoViewElement<Msg: EmptyMessage> {
     fn into_element(self) -> ViewElement<Msg>;
 }

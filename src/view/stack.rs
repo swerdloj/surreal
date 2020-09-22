@@ -4,7 +4,7 @@ use crate::view_element::*;
 
 #[derive(IntoViewElement)]
 #[kind(View)]
-pub struct Stack<Msg> {
+pub struct Stack<Msg: EmptyMessage> {
     orientation: Orientation,
     alignment: Option<Alignment>,
     state: Option<Shared<State>>,
@@ -17,7 +17,7 @@ pub struct Stack<Msg> {
     bounds: crate::bounding_rect::BoundingRect,
 }
 
-impl<Msg> Stack<Msg> {
+impl<Msg: EmptyMessage> Stack<Msg> {
     pub fn new(orientation: Orientation, children: Vec<ViewElement<Msg>>) -> Self {
         Stack {
             orientation,
@@ -35,7 +35,7 @@ impl<Msg> Stack<Msg> {
     }
 }
 
-impl<Msg> super::View<Msg> for Stack<Msg> where Msg: 'static{
+impl<Msg: EmptyMessage> super::View<Msg> for Stack<Msg> where Msg: 'static{
     fn share_state(&mut self, state: Shared<State>) {
         self.state = Some(state);
     }
@@ -75,45 +75,31 @@ impl<Msg> super::View<Msg> for Stack<Msg> where Msg: 'static{
         self.hook.as_ref()
     }
 
-    // TODO: Differentiate view & widget padding
-    // TODO: Utilize alignment
-    fn layout(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
+    // TODO: Utilize alignment (create helper functions for each alignment?)
+    fn layout(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme, is_root: bool) {
         let mut current_x = 0;
         let mut current_y = 0;
         let mut view_width = 0;
         let mut view_height = 0;
 
-        match self.orientation {
-            Orientation::Horizontal => current_y += theme.view_padding.vertical,
-            Orientation::Vertical => current_x += theme.view_padding.horizontal,
+        // Initial padding within window
+        if is_root {
+            current_x += theme.view_padding.horizontal;
+            current_y += theme.view_padding.vertical;
         }
         
         for child in &mut self.children {
-            let width;
-            let height;
-
-            match self.orientation {
-                Orientation::Horizontal => current_x += theme.view_padding.horizontal,
-                Orientation::Vertical => current_y += theme.view_padding.vertical,
-            }
+            let child_width;
+            let child_height;
 
             match child {
                 ViewElement::View(view) => {
-                    view.layout(text_renderer, theme);
+                    view.layout(text_renderer, theme, false);
                     let size = view.render_size();
-                    width = size.0; 
-                    height = size.1;
+                    child_width = size.0; 
+                    child_height = size.1;
                     
-                    // TODO: Adjust view_width & view_height
-                    // FIXME: Should not need to account for padding here
-                    match self.orientation {
-                        Orientation::Vertical => {
-                            view.translate((current_x - theme.view_padding.horizontal) as i32, current_y as i32);
-                        }
-                        Orientation::Horizontal => {
-                            todo!()
-                        }
-                    }
+                    view.translate(current_x as i32, current_y as i32);
                 }
                 
                 ViewElement::Widget(widget) => {
@@ -121,31 +107,46 @@ impl<Msg> super::View<Msg> for Stack<Msg> where Msg: 'static{
                     // println!("Placing {} at ({}, {})", widget.id(), current_x, current_y);
                     
                     let size = widget.render_size(theme);
-                    width = size.0; 
-                    height = size.1;
+                    child_width = size.0; 
+                    child_height = size.1;
                 }
             }
 
+            // Determines size of view thus far & where to place next element
             match self.orientation {
                 Orientation::Vertical => {
-                    current_y += height;
-                    view_width = std::cmp::max(width, view_width);
+                    current_y += child_height + theme.widget_padding.vertical;
+                    view_width = std::cmp::max(child_width, view_width);
                 }
                 Orientation::Horizontal => {
-                    current_x += width;
-                    view_height = std::cmp::max(height, view_height);
+                    current_x += child_width + theme.widget_padding.horizontal;
+                    view_height = std::cmp::max(child_height, view_height);
                 }
             }
         }
 
-        match self.orientation {
-            Orientation::Vertical => {
-                self.bounds.width = view_width + 2*theme.view_padding.horizontal;
-                self.bounds.height = current_y + theme.view_padding.vertical;
+        // NOTE: Subtraction is to remove the extra padding added in final iteration of the above loop
+        if is_root { // Add extra padding at the end of the root view (to match the initial padding)
+            match self.orientation {
+                Orientation::Vertical => {
+                    self.bounds.width = current_x + view_width + theme.view_padding.horizontal;
+                    self.bounds.height = current_y + theme.view_padding.vertical - theme.widget_padding.vertical;
+                }
+                Orientation::Horizontal => {
+                    self.bounds.width = current_x + theme.view_padding.horizontal - theme.widget_padding.horizontal;
+                    self.bounds.height = current_y + view_height + theme.view_padding.vertical;
+                }
             }
-            Orientation::Horizontal => {
-                self.bounds.width = current_x + theme.view_padding.horizontal;
-                self.bounds.height = view_height + 2*theme.view_padding.vertical;
+        } else { // Do not add any more padding --> treat child view just like a widget
+            match self.orientation {
+                Orientation::Vertical => {
+                    self.bounds.width = view_width;
+                    self.bounds.height = current_y - theme.widget_padding.vertical;
+                }
+                Orientation::Horizontal => {
+                    self.bounds.width = current_x - theme.widget_padding.horizontal;
+                    self.bounds.height = view_height;
+                }
             }
         }
     }

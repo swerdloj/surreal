@@ -57,7 +57,7 @@ impl<Msg> CircleButton<Msg> {
     }
 
     pub fn character(mut self, character: crate::widget::text::TextCharacter<Msg>) -> Self {
-        self.contents = Contents::Char(character.into_text());
+        self.contents = Contents::Char(character.into());
         self
     }
 
@@ -68,7 +68,7 @@ impl<Msg> CircleButton<Msg> {
     }
 }
 
-impl<Msg> Widget<Msg> for CircleButton<Msg> where Msg: 'static {
+impl<Msg: EmptyMessage> Widget<Msg> for CircleButton<Msg> where Msg: 'static {
     fn id(&self) -> &'static str {
         self.id
     }

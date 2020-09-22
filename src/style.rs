@@ -51,7 +51,7 @@ pub const DEFAULT_THEME: Theme = Theme {
 
     widget_padding: Padding {
         vertical: 10,
-        horizontal: 20,
+        horizontal: 15,
     },
 
     colors: Colors {

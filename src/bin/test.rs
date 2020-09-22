@@ -1,8 +1,7 @@
-#[macro_use]
-extern crate surreal;
-
 use surreal::prelude::*;
 
+#[derive(EmptyMessage)]
+#[empty(None)]
 enum Message {
     UpdateCounter,
     None,
@@ -57,9 +56,9 @@ fn main() {
 
                     Message::UpdateCounter
                 })
-                .text(Text::new("")
-                    .text("+")
-                    .scale(60.0)
+                .text(Text::character('+')
+                    .scale(70.0)
+                    .into()
                 )
                 .color(Color::LIGHT_GRAY),
 
@@ -88,22 +87,33 @@ fn main() {
 
                 Button::new("test5")
                     .color(Color::LIGHT_GRAY),
-                Button::new("test6")
-                    .color(Color::LIGHT_GRAY),
+
+                Button::new("reset")
+                    .color(Color::DARK_GRAY)
+                    .text(Text::new("")
+                        .text("Reset")
+                        .color(Color::new(0.9, 0.2, 0.3, 1.0))
+                        .scale(35.0)
+                    )
+                    .on_click(|mut state| {
+                        @counter = 0;
+                        Message::UpdateCounter
+                    }),
             },
 
             Button::new("test7"),
+
+            Button::new("test8"),
         }
         .alignment(Alignment::Center),
     };
 
+    // NOTE: Future: Define view via DSL. Hook can then be used to implement the view
     view.set_hook(|view, _message| {
         let test: &mut Text<_> = get_widget_by_id(view, "more_text");
         test.set_text("Hook");
 
         // let text: &mut Text<_> = view.get_widget_by_id("more_text");
-
-        println!("This is from a hook with access to the view");
     });
 
     // NOTE: The extra '../' here is because this is in the '/bin' folder
@@ -112,7 +122,7 @@ fn main() {
     };
 
     // TODO: This + pass to app
-    // let theme = include_theme!("../../res/themes/default.theme")
+    // let theme = include_theme!("../../res/themes/default.theme");
 
     let mut app = Application::new(ApplicationSettings {
         title: "Surreal Test",

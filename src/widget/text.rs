@@ -30,9 +30,10 @@ impl<Msg> TextCharacter<Msg> {
         self.color = Some(color);
         self
     }
+}
 
-    // TODO: Consider just implementing `Into<Text>`
-    pub(crate) fn into_text(self) -> Text<Msg> {
+impl<Msg> Into<Text<Msg>> for TextCharacter<Msg> {
+    fn into(self) -> Text<Msg> {
         let mut text = Text::new("__from_TextCharacter")
             .text(&self.character.to_string())
             .font(&self.font);
@@ -129,7 +130,7 @@ impl<Msg> Text<Msg> {
     }
 }
 
-impl<Msg> Widget<Msg> for Text<Msg> where Msg: 'static{
+impl<Msg: EmptyMessage> Widget<Msg> for Text<Msg> where Msg: 'static{
     fn id(&self) -> &'static str {
         self.id
     }
