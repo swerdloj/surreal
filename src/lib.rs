@@ -62,6 +62,13 @@ pub trait EmptyMessage {
     fn is_message(&self) -> bool;
 }
 
+// Allow views that don't use messages
+impl EmptyMessage for () {
+    fn is_message(&self) -> bool {
+        false
+    }
+}
+
 pub struct MessageQueue<Msg : EmptyMessage> {
     queue: Vec<Msg>,
 }

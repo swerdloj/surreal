@@ -11,8 +11,8 @@ build = "build.rs"
 paste = "1.0.0"
 wgpu = "0.6.0"
 futures = "0.3.5"
-# TEMP: Update to official wgpu_glyph when 0.6.0 branch is merged
-# wgpu_glyph = "0.9.0"
+# TEMP: Update to official wgpu_glyph if they do something about StagingBelt
+# wgpu_glyph = "0.10.0"
 wgpu_glyph = { git = "https://github.com/rukai/wgpu_glyph/", branch = "update_wgpu" }
 glyph_brush = "0.7.0"
 bytemuck = "1.3.1"

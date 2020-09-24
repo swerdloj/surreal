@@ -94,8 +94,8 @@ impl TextRenderer {
         let bounds = self.brush.glyph_bounds(section);
         
         if let Some(rect) = bounds {
-            // TODO: How do the rect's floats compare to actual pixels? Round up?
-            (rect.width() as u32, rect.height() as u32)
+            // TODO: Use floats internally rather than casting to u32
+            (rect.width().round() as u32, rect.height().round() as u32)
         } else {
             // Nothing is being drawn -> no size
             (0, 0)
@@ -120,14 +120,17 @@ impl TextRenderer {
 /// Type returned by `include_fonts` macro
 pub type IncludedFonts = Vec<(&'static str, wgpu_glyph::ab_glyph::FontArc)>;
 
-/// Load fonts as bytes from paths (embeds fonts in program)
+/// Load fonts as bytes from paths (embeds fonts in executable).
 ///
 /// Generates a list of (alias, font) for use with TextRenderer where
 /// `surreal::IncludedFonts` is a type alias for this list.
 ///
+/// Note that the default font **must** be specified.
+///
 /// Usage:
 /// ```
 /// let fonts = include_fonts! {
+///     default => "path/to/default_font",
 ///     alias_1 => "path/to/font1",
 ///     alias_2 => "path/to/font2", ...
 /// };
@@ -137,12 +140,22 @@ macro_rules! include_fonts {
     ( $($alias:ident => $font_path:expr),+ $(,)? ) => {{
         let mut fonts = Vec::new();
 
+        let mut has_default = false;
         $(
             let font_bytes = include_bytes!($font_path);
             let font = wgpu_glyph::ab_glyph::FontArc::try_from_slice(font_bytes).unwrap();
+            
+            let alias = stringify!($alias);
+            if alias == "default" {
+                has_default = true;
+            }
 
-            fonts.push((stringify!($alias), font));
+            fonts.push((alias, font));
         )+
+
+        if !has_default {
+            panic!("Included fonts does not contain a `default` alias. This is required by surreal.");
+        }
 
         fonts
     };
