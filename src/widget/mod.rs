@@ -19,6 +19,16 @@ pub trait Widget<Msg> : crate::IntoViewElement<Msg> where Msg : crate::EmptyMess
 
     }
 
+    /// Checks whether the widget requested resize, then resets the widget's should_resize state to false.
+    fn check_if_should_resize_then_reset_to_false(&mut self) -> bool {
+        let should = self.should_resize();
+        let clone = *should;
+
+        *should = false;
+
+        clone
+    }
+
     fn should_resize(&mut self) -> &mut bool;
 
     fn init(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme);

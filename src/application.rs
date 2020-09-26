@@ -124,10 +124,21 @@ impl Application {
         );
 
         self.timer.start();
+
+        #[cfg(feature = "frame-time")]
+        let mut frame_time_accumulator: u128 = 0;
+        #[cfg(feature = "frame-time")]
+        let mut num_frames: u64 = 0;
+        
         'main_loop: loop {
+            #[cfg(feature = "frame-time")]
+            let start = std::time::Instant::now();
+
             for event in event_pump.poll_iter() {
                 match event {
                     Event::Quit {..} => {
+                        #[cfg(feature = "frame-time")]
+                        println!("Average frame time: {}", frame_time_accumulator as f64 / num_frames as f64);
                         println!("Exiting main loop...");
                         break 'main_loop;
                     }
@@ -149,23 +160,30 @@ impl Application {
                 view.propogate_event(&event, &mut message_queue);
             }
             
+            let mut should_resize = false;
             for message in message_queue.drain() {
                 // FIXME: I can't make `call_hook` part of `View`
                 crate::view::call_hook(view, &message);
-                view.propogate_message(&message);
+                should_resize |= view.propogate_message(&message);
             }
 
-            if view.should_resize() {
+            if should_resize {
                 view._init(&mut renderer.text_renderer, &self.global_theme);
                 view.layout(&mut renderer.text_renderer, &self.global_theme, true);
             }
 
+            
             // FIXME: wgpu panics at "Outdated" when the render surface changes (on window minimize)
             // This solves the issue, but I feel like there is a better solution
             if !self.is_minimized {
                 self.render_view(&mut renderer, view);
             }
             
+            #[cfg(feature = "frame-time")] {
+                frame_time_accumulator += start.elapsed().as_millis();
+                num_frames += 1;
+            }
+
             let dt = self.timer.tick();
             crate::timing::Timer::await_fps(60, dt, 5);
         }
@@ -276,7 +294,7 @@ async fn init_wgpu(window: &sdl2::video::Window) -> GraphicsDevice {
         width,
         height,
         // TODO: Allow user to toggle vsync
-        present_mode: PresentMode::Fifo,
+        present_mode: PresentMode::Immediate, // immediate gives lowest frame-times (no waiting period)
     };
 
     let swap_chain = device.create_swap_chain(&render_surface, &sc_desc);

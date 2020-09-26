@@ -21,7 +21,7 @@ pub mod prelude {
         surreal_macros::*,
         style::{Theme, DEFAULT_THEME, PrimitiveStyle},
         application::{Application, ApplicationSettings},
-        state::State,
+        state,
         widget::*,
         view::*,
         render::font::IncludedFonts,

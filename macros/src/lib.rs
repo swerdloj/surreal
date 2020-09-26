@@ -219,7 +219,7 @@ pub fn Stateful(input: TokenStream) -> TokenStream {
         {
             let mut state = #state;
             let mut view = #formatted_view;
-            view.assign_state(state);
+            view.assign_state(std::rc::Rc::new(std::cell::RefCell::new(state)));
             view
         }
     };

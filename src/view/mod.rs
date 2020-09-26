@@ -16,10 +16,8 @@ struct ViewMap<Msg: crate::EmptyMessage> {
 // but other views may be desired such as TabView, GridView, ScrollView, and so on
 pub trait View<Msg: crate::EmptyMessage> : crate::IntoViewElement<Msg> {
     fn state(&self) -> crate::state::Shared<crate::state::State>;
-    /// Assigns the root view's state
-    fn assign_state(&mut self, state: crate::state::State);
-    /// Assign a view's state by sharing a parent's state
-    fn share_state(&mut self, state: crate::state::Shared<crate::state::State>);
+    /// Assigns the state to all views in the view tree
+    fn assign_state(&mut self, state: crate::state::Shared<crate::state::State>);
 
     // TODO: See ViewMap
     // fn map(&mut self) -> &mut ViewMap<Msg>;
@@ -61,24 +59,6 @@ pub trait View<Msg: crate::EmptyMessage> : crate::IntoViewElement<Msg> {
         (self.render_width(), self.render_height())
     }
 
-    fn should_resize(&mut self) -> bool {
-        let mut should_resize = false;
-        for child in self.children() {
-            match child {
-                crate::ViewElement::Widget(widget) => {
-                    let should = widget.should_resize();
-                    should_resize = should_resize || *should;
-                    *should = false;
-                }
-                crate::ViewElement::View(view) => {
-                    should_resize = should_resize || view.should_resize();
-                }
-            }
-        }
-
-        should_resize
-    }
-
     // TODO: Should views serve only as containers?
     // Implementing this as part of the trait will not allow otherwise.
     // Might want to allow backgrounds or outlines for views.
@@ -114,20 +94,27 @@ pub trait View<Msg: crate::EmptyMessage> : crate::IntoViewElement<Msg> {
         }
     }
 
-    fn propogate_message(&mut self, message: &Msg) {
+    // Returns true if the view should resize
+    fn propogate_message(&mut self, message: &Msg) -> bool {
         let state = self.state();
+
+        let mut should_resize = false;
 
         for child in self.children() {
             match child {
                 crate::ViewElement::View(view) => {
-                    view.propogate_message(message);
+                    should_resize |= view.propogate_message(message);
                 }
 
                 crate::ViewElement::Widget(widget) => {
                     widget.handle_message(message, state.clone().borrow_mut());
+                    
+                    should_resize |= widget.check_if_should_resize_then_reset_to_false();
                 }
             }
         }
+
+        should_resize
     }
 
     // FIXME: I want hook to be FnMut, but I can only do this if I require the
@@ -137,7 +124,7 @@ pub trait View<Msg: crate::EmptyMessage> : crate::IntoViewElement<Msg> {
     fn get_hook(&self) -> Option<&ViewHook<Msg>>;
 }
 
-pub fn call_hook<Msg: crate::EmptyMessage>(view: &mut dyn View<Msg>, message: &Msg) {
+pub(crate) fn call_hook<Msg: crate::EmptyMessage>(view: &mut dyn View<Msg>, message: &Msg) {
     if let Some(hook) = view.get_hook() {
         (hook)(view, message);
     }

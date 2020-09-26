@@ -9,7 +9,6 @@
 
 
 # Goals
-
 1. Ease of use
   - See what people will do with the library
   - Make those features easy to use/simple
@@ -32,6 +31,7 @@
 - Introduce the project
   - What it solves
   - What it does
+  - Why this over alternatives
 - Specify intentions
 - Relate to community (Rust & GUI development)
 - Cross-platform & future-proof
@@ -47,6 +47,7 @@
 
 
 ## Benchmarking
+- Time per frame
 - Note performance
   - Compare to Rust libraries
     - Bevy, Conrad, Iced, etc.

@@ -62,7 +62,7 @@ impl State {
 #[macro_export]
 macro_rules! State {
     ( $($name:ident : $type:ty = $value:expr),+ $(,)? ) => {{
-        let mut state = surreal::state::State::new();
+        let mut state = state::State::new();
 
         $(
             // Force proper type (don't want "12" to become an i32 when meant for u32)

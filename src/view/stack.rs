@@ -1,4 +1,4 @@
-use crate::state::{Shared, State, make_shared};
+use crate::state::{Shared, State};
 use crate::{Orientation, Alignment};
 use crate::view_element::*;
 
@@ -8,8 +8,6 @@ pub struct Stack<Msg: EmptyMessage> {
     orientation: Orientation,
     alignment: Option<Alignment>,
     state: Option<Shared<State>>,
-    // TODO: Children should be an ordered hashmap of (id -> element)
-    // This would also enforce unique element ids
     children: Vec<ViewElement<Msg>>,
 
     hook: Option<super::ViewHook<Msg>>,
@@ -36,23 +34,14 @@ impl<Msg: EmptyMessage> Stack<Msg> {
 }
 
 impl<Msg: EmptyMessage> super::View<Msg> for Stack<Msg> where Msg: 'static{
-    fn share_state(&mut self, state: Shared<State>) {
-        self.state = Some(state);
-    }
-
-    fn assign_state(&mut self, state: crate::state::State) {
-        let shared_state = make_shared(state);
-
+    fn assign_state(&mut self, state: Shared<State>) {
         for child in &mut self.children {
-            match child {
-                ViewElement::View(view) => {
-                    view.share_state(shared_state.clone());
-                }
-
-                _ => {}
+            if let ViewElement::View(view) = child {
+                view.assign_state(state.clone());
             }
         }
-        self.state = Some(shared_state);
+
+        self.state = Some(state);
     }
 
     fn init(&mut self, _text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
