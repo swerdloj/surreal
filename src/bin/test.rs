@@ -17,6 +17,11 @@ fn main() {
         },
 
         VStack! {
+            // TODO: This
+            // Image::new("image")
+            //     .resource("resource_name")
+            //     .fit_to_width(200),
+
             Button::new("text_button")
                 .text(Text::new("") // <-- Nested id is not needed
                     .text("Button")
@@ -123,6 +128,11 @@ fn main() {
 
     // TODO: This + pass to app
     // let theme = include_theme!("../../res/themes/default.theme");
+
+    // TODO: This + pass to app
+    // let image_resources = include_images!(
+    //     alias => "../path/to/image.ext",
+    // );
 
     let mut app = Application::new(ApplicationSettings {
         title: "Surreal Test",

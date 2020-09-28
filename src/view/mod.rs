@@ -5,16 +5,16 @@ pub use stack::Stack;
 pub type ViewHook<Msg> = fn(&mut dyn View<Msg>, &Msg);
 
 // TODO: Integrate this. Also see if `get_by_id` can work for this type
-struct ViewMap<Msg: crate::EmptyMessage> {
-    // Map of element id to a sequence of child indices
-    index_sequence: std::collections::HashMap<&'static str, Vec<usize>>,
-    // Ordered list of child elements
-    pub children: Vec<crate::ViewElement<Msg>>,
-}
+// struct ViewMap<Msg: crate::EmptyMessage> {
+//     // Map of element id to a sequence of child indices
+//     index_sequence: std::collections::HashMap<&'static str, Vec<usize>>,
+//     // Ordered list of child elements
+//     pub children: Vec<crate::ViewElement<Msg>>,
+// }
 
 // VStack, HStack, ListView, and more can all be created using just the `Stack` struct,
 // but other views may be desired such as TabView, GridView, ScrollView, and so on
-pub trait View<Msg: crate::EmptyMessage> : crate::IntoViewElement<Msg> {
+pub trait View<Msg: crate::EmptyMessage> {
     fn state(&self) -> crate::state::Shared<crate::state::State>;
     /// Assigns the state to all views in the view tree
     fn assign_state(&mut self, state: crate::state::Shared<crate::state::State>);

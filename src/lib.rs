@@ -2,6 +2,7 @@
 pub mod application;
 pub mod state;
 pub mod style;
+pub mod animation;
 
 pub mod view;
 pub mod widget;
@@ -164,6 +165,98 @@ pub enum ViewElement<Msg: EmptyMessage> {
     View(Box<dyn crate::view::View<Msg>>),
 }
 
-pub trait IntoViewElement<Msg: EmptyMessage> {
+// TODO: Make sure the blanket impl hack doesn't break anything
+pub trait IntoViewElement<Msg: EmptyMessage, ImplTypeConstraint> {
     fn into_element(self) -> ViewElement<Msg>;
 }
+
+// FIXME: These types are leaked by view macros (but not imported through prelude)
+pub struct __WidgetBlanket;
+pub struct __ViewBlanket;
+
+// Unit struct hack from: https://jsdw.me/posts/rust-fn-traits/
+impl<Msg: EmptyMessage, T: widget::Widget<Msg> + 'static> IntoViewElement<Msg, __WidgetBlanket> for T {
+    fn into_element(self) -> ViewElement<Msg> {
+        ViewElement::Widget(Box::new(self))
+    }
+}
+
+impl<Msg: EmptyMessage, T: view::View<Msg> + 'static> IntoViewElement<Msg, __ViewBlanket> for T {
+    fn into_element(self) -> ViewElement<Msg> {
+        ViewElement::View(Box::new(self))
+    }
+}
+
+
+//////////// TESTING /////////////
+
+macro_rules! TestStack {
+    ( $($component:expr),+ $(,)? ) => {{
+        let mut children = Vec::new();
+
+        $(
+            let child = Box::new($component);
+            // child.insert_elements(&mut children);
+        )+
+
+        Stack::new(Orientation::Vertical, children)
+    }};
+}
+
+
+struct Hack1;
+struct Hack2;
+struct Hack3;
+
+trait InsertViewElement<Msg: EmptyMessage, Hack> {
+    fn insert_elements(self, list: &mut Vec<ViewElement<Msg>>);
+}
+
+impl<Msg: EmptyMessage> InsertViewElement<Msg, Hack1> for () {
+    fn insert_elements(self, _list: &mut Vec<ViewElement<Msg>>) {
+        // nothing
+    }
+}
+
+impl<Msg: EmptyMessage, T: IntoViewElement<Msg, ()>> InsertViewElement<Msg, Hack2> for T {
+    fn insert_elements(self, list: &mut Vec<ViewElement<Msg>>) {
+        list.push(self.into_element())
+    }
+}
+
+impl<Msg: EmptyMessage, T: IntoViewElement<Msg, ()>> InsertViewElement<Msg, Hack3> for Vec<T> {
+    fn insert_elements(self, list: &mut Vec<ViewElement<Msg>>) {
+        for item in self.into_iter() {
+            list.push(item.into_element())
+        }
+    }
+}
+
+/*
+fn test() {
+    use prelude::*;
+
+    // TODO: See if boxing within the macros rather than within IntoViewElement
+    // can allow for all 3 cases
+    // TODO: Create an `if` macro that returns an empty vec if no else block is given
+
+    let x: Vec<Button<()>> = Vec::new();
+    let y: Vec<Box<dyn IntoViewElement<()>>> = vec![
+        Box::new(Button::new("2")),
+        Box::new(Text::new("3")),
+    ];
+
+    let view: Stack<()> = TestStack! {
+        // Base case
+        Button::new("1"),
+
+        // List case
+        // y,
+
+        // Empty "if" case
+        x,
+
+        Button::new("4"),
+    };
+}
+*/

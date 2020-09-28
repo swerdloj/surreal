@@ -6,15 +6,13 @@ use std::cell::RefMut;
 
 use super::{Widget, Text, Image};
 
-enum Contents<Msg> {
+pub enum Contents<Msg> {
     Char(Text<Msg>),
     // TODO: This (once image support is added)
-    Image(Image),
+    Image(Image<Msg>),
     None,
 }
 
-#[derive(IntoViewElement)]
-#[kind(Widget)]
 pub struct CircleButton<Msg> {
     id: &'static str,
     bounds: BoundingRect,
@@ -57,7 +55,20 @@ impl<Msg> CircleButton<Msg> {
     }
 
     pub fn character(mut self, character: crate::widget::text::TextCharacter<Msg>) -> Self {
+        if let Contents::Image(_) = self.contents {
+            println!("WARNING: Overwriting image resource of `{}` with a character", self.id);
+        }
+
         self.contents = Contents::Char(character.into());
+        self
+    }
+
+    pub fn image(mut self, image: Image<Msg>) -> Self {
+        if let Contents::Char(_) = self.contents {
+            println!("WARNING: Overwriting character resource of `{}` with an image", self.id);
+        }
+
+        self.contents = Contents::Image(image);
         self
     }
 
@@ -92,9 +103,18 @@ impl<Msg: EmptyMessage> Widget<Msg> for CircleButton<Msg> where Msg: 'static {
                 (self.bounds.height / 2) as i32 - (text_height / 2) as i32
                 );
             }
-            Contents::Image(_image) => {
-                todo!();
+
+            Contents::Image(image) => {
+                let (image_width, image_height) = image.bounds.dimensions();
+                image.place(x, y);
+
+                // FIXME: `place` doesn't seem like the proper location for this
+                image.translate(
+                (self.bounds.width / 2) as i32 - (image_width / 2) as i32, 
+                (self.bounds.height / 2) as i32 - (image_height / 2) as i32
+                );
             }
+
             Contents::None => {}
         }
     }
@@ -107,8 +127,8 @@ impl<Msg: EmptyMessage> Widget<Msg> for CircleButton<Msg> where Msg: 'static {
             Contents::Char(text) => {
                 text.translate(dx, dy);
             }
-            Contents::Image(_image) => {
-                todo!();
+            Contents::Image(image) => {
+                image.translate(dx, dy);
             }
             Contents::None => {}
         }
@@ -119,8 +139,8 @@ impl<Msg: EmptyMessage> Widget<Msg> for CircleButton<Msg> where Msg: 'static {
             Contents::Char(text) => {
                 text.init(text_renderer, theme);
             }
-            Contents::Image(_image) => {
-                todo!();
+            Contents::Image(image) => {
+                image.init(text_renderer, theme);
             }
             Contents::None => {}
         }
@@ -182,9 +202,8 @@ impl<Msg: EmptyMessage> Widget<Msg> for CircleButton<Msg> where Msg: 'static {
             Contents::Char(text) => {
                 text.render(renderer, theme);
             }
-            Contents::Image(_image) => {
-                todo!();
-                // image.render(renderer, theme);
+            Contents::Image(image) => {
+                image.render(renderer, theme);
             }
             Contents::None => {}
         }

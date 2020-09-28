@@ -51,8 +51,6 @@ impl<Msg> Into<Text<Msg>> for TextCharacter<Msg> {
 }
 
 
-#[derive(IntoViewElement)]
-#[kind(Widget)]
 pub struct Text<Msg> {
     id: &'static str,
     text: String,

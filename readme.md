@@ -164,4 +164,14 @@ view.set_hook(|this, message| {
 ```
 
 ## Control Flow
-TODO: Execution order
+- **Initialization**:
+  - View::_init -> View::init + Widget::init -> View::layout
+- **Main Loop**:
+  - **Event Loop** (generates messages):
+    - View::propogate_event -> Widget::handle_event
+  - **Message Loop** (signals resize):
+    - View::call_hook -> View::propogate_message -> Widget::handle_message
+  - **If should_resize**:
+    - repeat Initialization
+  - **Render**:
+    - View::render + Widget::render

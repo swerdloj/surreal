@@ -29,6 +29,7 @@ pub struct ApplicationSettings {
     pub fonts: crate::render::font::IncludedFonts,
     pub fit_window_to_view: bool,
     pub resizable: bool,
+    pub use_vsync: bool,
 }
 
 impl Default for ApplicationSettings {
@@ -42,6 +43,7 @@ impl Default for ApplicationSettings {
             fonts: Vec::new(),
             fit_window_to_view: true,
             resizable: true,
+            use_vsync: false,
         }
     }
 }
@@ -63,7 +65,7 @@ impl Application {
     pub fn new(settings: ApplicationSettings) -> Self {
         let sdl = init_sdl2(settings.title, settings.width, settings.height, settings.resizable);
         let gpu = futures::executor::block_on(
-            init_wgpu(&sdl.window)
+            init_wgpu(&sdl.window, settings.use_vsync)
         );
 
         let timer = crate::timing::Timer::from_sdl2_context(&sdl.context);
@@ -266,7 +268,7 @@ fn init_sdl2(title: &str, width: u32, height: u32, resizable: bool) -> WindowSys
     }
 }
 
-async fn init_wgpu(window: &sdl2::video::Window) -> GraphicsDevice {
+async fn init_wgpu(window: &sdl2::video::Window, use_vsync: bool) -> GraphicsDevice {
     let (width, height) = window.size();
 
     let instance = Instance::new(BackendBit::PRIMARY);
@@ -288,13 +290,19 @@ async fn init_wgpu(window: &sdl2::video::Window) -> GraphicsDevice {
         None,
     ).await.unwrap();
 
+    let present_mode = if use_vsync {
+        PresentMode::Fifo
+    } else {
+        // immediate gives lowest frame-times (no waiting period)
+        PresentMode::Immediate 
+    };
+
     let sc_desc = SwapChainDescriptor {
         usage: TextureUsage::OUTPUT_ATTACHMENT,
         format: crate::TEXTURE_FORMAT,
         width,
         height,
-        // TODO: Allow user to toggle vsync
-        present_mode: PresentMode::Immediate, // immediate gives lowest frame-times (no waiting period)
+        present_mode,
     };
 
     let swap_chain = device.create_swap_chain(&render_surface, &sc_desc);

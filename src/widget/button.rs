@@ -8,8 +8,6 @@ use sdl2::event::Event;
 
 use super::Widget;
 
-#[derive(IntoViewElement)]
-#[kind(Widget)]
 pub struct Button<Msg> {
     id: &'static str,
     bounds: BoundingRect,

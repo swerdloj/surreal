@@ -2,8 +2,6 @@ use crate::state::{Shared, State};
 use crate::{Orientation, Alignment};
 use crate::view_element::*;
 
-#[derive(IntoViewElement)]
-#[kind(View)]
 pub struct Stack<Msg: EmptyMessage> {
     orientation: Orientation,
     alignment: Option<Alignment>,
