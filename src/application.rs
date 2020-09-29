@@ -24,7 +24,8 @@ pub struct ApplicationSettings {
     pub width: u32,
     pub height: u32,
     pub global_theme: crate::style::Theme,
-    // TODO: Integrate image crate
+    pub images: crate::widget::IncludedImages,
+    // TODO: Reference the desired image resource
     pub app_icon: (),
     pub fonts: crate::render::font::IncludedFonts,
     pub fit_window_to_view: bool,
@@ -39,6 +40,7 @@ impl Default for ApplicationSettings {
             width: 800,
             height: 600,
             global_theme: crate::style::DEFAULT_THEME,
+            images: Vec::new(),
             app_icon: (),
             fonts: Vec::new(),
             fit_window_to_view: true,
@@ -55,6 +57,7 @@ pub struct Application {
     timer: crate::timing::Timer,
 
     fonts: Option<crate::render::font::IncludedFonts>,
+    images: crate::render::texture::TextureMap,
     global_theme: crate::style::Theme,
 
     fit_window_to_view: bool,
@@ -70,11 +73,14 @@ impl Application {
 
         let timer = crate::timing::Timer::from_sdl2_context(&sdl.context);
 
+        let images = crate::render::texture::TextureMap::from_images(settings.images, &gpu.device, &gpu.queue);
+
         Application {
             sdl,
             gpu,
             timer,
             fonts: Some(settings.fonts),
+            images,
             global_theme: crate::style::DEFAULT_THEME,
 
             fit_window_to_view: settings.fit_window_to_view,

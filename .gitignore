@@ -2,3 +2,4 @@ macros/target
 /target
 Cargo.lock
 *.dll
+surreal_workspace.code-workspace

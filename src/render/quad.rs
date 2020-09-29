@@ -1,5 +1,5 @@
 use wgpu::*;
-use wgpu::util::*;
+use wgpu::util::{DeviceExt, BufferInitDescriptor, make_spirv};
 
 pub mod primitive {
     pub const RECTANGLE: u32 = 0;
@@ -201,7 +201,7 @@ impl Quad {
                                   layout: &BindGroupLayout,
                                   color_format: TextureFormat,
     ) -> RenderPipeline {
-        let layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
+        let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             bind_group_layouts: &[layout],
             push_constant_ranges: &[],
             label: Some("quad_render_pipeline"),
@@ -214,12 +214,12 @@ impl Quad {
         let mut spirv_buffer1 = Vec::new();
         let mut spirv_buffer2 = Vec::new();
 
-        let vert_shader = include_str!("../../shaders/quad.vert");
+        let vert_shader = include_str!("../../shaders/ui/quad.vert");
         let mut vert_spirv = glsl_to_spirv::compile(vert_shader, glsl_to_spirv::ShaderType::Vertex).unwrap();
         vert_spirv.read_to_end(&mut spirv_buffer1).unwrap();
         let vert_data = make_spirv(&spirv_buffer1);
         
-        let frag_shader = include_str!("../../shaders/quad.frag");
+        let frag_shader = include_str!("../../shaders/ui/quad.frag");
         let mut frag_spirv = glsl_to_spirv::compile(frag_shader, glsl_to_spirv::ShaderType::Fragment).unwrap();
         frag_spirv.read_to_end(&mut spirv_buffer2).unwrap();
         let frag_data = make_spirv(&spirv_buffer2);
@@ -228,7 +228,7 @@ impl Quad {
         let frag_module = device.create_shader_module(frag_data);
 
         device.create_render_pipeline(&RenderPipelineDescriptor {
-            layout: Some(&layout),
+            layout: Some(&pipeline_layout),
             vertex_stage: ProgrammableStageDescriptor {
                 module: &vert_module,
                 entry_point: "main",
@@ -244,28 +244,20 @@ impl Quad {
                 ..Default::default()
             }),
             primitive_topology: PrimitiveTopology::TriangleList,
-            // color_states: &[
-            //     ColorStateDescriptor {
-            //         format: color_format,
-            //         alpha_blend: BlendDescriptor::REPLACE,
-            //         color_blend: BlendDescriptor::REPLACE,
-            //         write_mask: ColorWrite::ALL,
-            //     },
-            // ],
             // NOTE: The following enables simple alpha-blending
-            color_states: &[wgpu::ColorStateDescriptor {
+            color_states: &[ColorStateDescriptor {
                 format: color_format,
-                color_blend: wgpu::BlendDescriptor {
+                color_blend: BlendDescriptor {
                     src_factor: BlendFactor::SrcAlpha,
                     dst_factor: BlendFactor::OneMinusSrcAlpha,
                     operation: BlendOperation::Add,                 
                 },
-                alpha_blend: wgpu::BlendDescriptor {
+                alpha_blend: BlendDescriptor {
                     src_factor: BlendFactor::One,
                     dst_factor: BlendFactor::One,
                     operation: BlendOperation::Add,                 
                 },
-                write_mask: wgpu::ColorWrite::ALL,
+                write_mask: ColorWrite::ALL,
             }],
             depth_stencil_state: None,
             vertex_state: VertexStateDescriptor {

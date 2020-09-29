@@ -74,3 +74,44 @@ impl<Msg: EmptyMessage + 'static> Widget<Msg> for Image<Msg> {
         todo!()
     }
 }
+
+/// Type returned by `include_images` macro
+pub type IncludedImages = Vec<(&'static str, image::DynamicImage)>;
+
+/// Load images as bytes from paths (embeds fonts in executable).
+///
+/// Generates a list of (alias, image) for use with TODO: where
+/// `surreal::IncludedImages` is a type alias for this list.
+///
+/// Usage:
+/// ```
+/// let fonts = include_images! {
+///     alias_1 => "path/to/image1.jpg",
+///     alias_2 => "path/to/image2.png",
+///     alias_3 => "path/to/image3.bmp", ...
+/// };
+/// ```
+#[macro_export]
+macro_rules! include_images {
+    ( $($alias:ident => $image_path:expr),+ $(,)? ) => {{
+        let mut images = Vec::new();
+
+        let mut aliases = std::collections::HashSet::new();
+
+        // TODO: Convert image to wgpu resource. Store that, not DynamicImage.
+        $(
+            let image_bytes = include_bytes!($image_path);
+
+            let image_resource = image::load_from_memory(image_bytes).unwrap();
+            let alias = stringify!($alias);
+
+            if !aliases.insert(alias) {
+                panic!("An image resource with alias `{}` already exists", alias);
+            }
+
+            images.push((alias, image_resource));
+        )+
+
+        images
+    }}
+}

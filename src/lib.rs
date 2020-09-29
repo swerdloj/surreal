@@ -50,6 +50,7 @@ pub mod surreal_macros {
         HStack, 
         State,
         include_fonts,
+        include_images,
     };
 }
 
@@ -166,7 +167,7 @@ pub enum ViewElement<Msg: EmptyMessage> {
 }
 
 // TODO: Make sure the blanket impl hack doesn't break anything
-pub trait IntoViewElement<Msg: EmptyMessage, ImplTypeConstraint> {
+pub trait IntoViewElement<Msg: EmptyMessage, ImplConstraint> {
     fn into_element(self) -> ViewElement<Msg>;
 }
 
@@ -190,41 +191,41 @@ impl<Msg: EmptyMessage, T: view::View<Msg> + 'static> IntoViewElement<Msg, __Vie
 
 //////////// TESTING /////////////
 
-macro_rules! TestStack {
-    ( $($component:expr),+ $(,)? ) => {{
-        let mut children = Vec::new();
+// FIXME: ?? but it works
+struct Hack1;struct Hack2;struct Hack3;struct Hack4;struct Hack5;
 
-        $(
-            let child = Box::new($component);
-            // child.insert_elements(&mut children);
-        )+
-
-        Stack::new(Orientation::Vertical, children)
-    }};
-}
-
-
-struct Hack1;
-struct Hack2;
-struct Hack3;
-
-trait InsertViewElement<Msg: EmptyMessage, Hack> {
+trait InsertViewElement<Msg: EmptyMessage, ImplConstraint> {
     fn insert_elements(self, list: &mut Vec<ViewElement<Msg>>);
 }
 
+// Void type insert nothing
 impl<Msg: EmptyMessage> InsertViewElement<Msg, Hack1> for () {
     fn insert_elements(self, _list: &mut Vec<ViewElement<Msg>>) {
         // nothing
     }
 }
 
-impl<Msg: EmptyMessage, T: IntoViewElement<Msg, ()>> InsertViewElement<Msg, Hack2> for T {
+// Widgets and Views insert themselves
+impl<Msg: EmptyMessage, T: IntoViewElement<Msg, __WidgetBlanket>> InsertViewElement<Msg, Hack2> for T {
+    fn insert_elements(self, list: &mut Vec<ViewElement<Msg>>) {
+        list.push(self.into_element())
+    }
+}
+impl<Msg: EmptyMessage, T: IntoViewElement<Msg, __ViewBlanket>> InsertViewElement<Msg, Hack3> for T {
     fn insert_elements(self, list: &mut Vec<ViewElement<Msg>>) {
         list.push(self.into_element())
     }
 }
 
-impl<Msg: EmptyMessage, T: IntoViewElement<Msg, ()>> InsertViewElement<Msg, Hack3> for Vec<T> {
+// Lists of Widgets and Lists of Views insert their contents
+impl<Msg: EmptyMessage, T: IntoViewElement<Msg, __WidgetBlanket>> InsertViewElement<Msg, Hack4> for Vec<T> {
+    fn insert_elements(self, list: &mut Vec<ViewElement<Msg>>) {
+        for item in self.into_iter() {
+            list.push(item.into_element())
+        }
+    }
+}
+impl<Msg: EmptyMessage, T: IntoViewElement<Msg, __ViewBlanket>> InsertViewElement<Msg, Hack5> for Vec<T> {
     fn insert_elements(self, list: &mut Vec<ViewElement<Msg>>) {
         for item in self.into_iter() {
             list.push(item.into_element())
@@ -232,7 +233,22 @@ impl<Msg: EmptyMessage, T: IntoViewElement<Msg, ()>> InsertViewElement<Msg, Hack
     }
 }
 
-/*
+macro_rules! TestStack {
+    ( $($component:expr),+ $(,)? ) => {{
+        let mut children = Vec::new();
+
+        $(
+            // let child = Box::new($component);
+            // child.insert_elements(&mut children);
+
+            ($component).insert_elements(&mut children);
+        )+
+
+        Stack::new(Orientation::Vertical, children)
+    }};
+}
+
+// TEMP: Here for testing purposes
 fn test() {
     use prelude::*;
 
@@ -240,8 +256,9 @@ fn test() {
     // can allow for all 3 cases
     // TODO: Create an `if` macro that returns an empty vec if no else block is given
 
-    let x: Vec<Button<()>> = Vec::new();
-    let y: Vec<Box<dyn IntoViewElement<()>>> = vec![
+    let empty1: Vec<Button<()>> = Vec::new();
+    let empty2 = ();
+    let list: Vec<Box<dyn IntoViewElement<(), _>>> = vec![
         Box::new(Button::new("2")),
         Box::new(Text::new("3")),
     ];
@@ -250,13 +267,17 @@ fn test() {
         // Base case
         Button::new("1"),
 
+        // Nested case
+        TestStack! {
+            CircleButton::new("2"),
+            Text::new("3"),
+        },
+
         // List case
-        // y,
+        // list,
 
-        // Empty "if" case
-        x,
-
-        Button::new("4"),
+        // Empty "if" case(s?)
+        empty1,
+        empty2,
     };
 }
-*/

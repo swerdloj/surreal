@@ -14,7 +14,8 @@ macro_rules! size_of {
 
 
 pub mod font;
-pub mod quad;
+mod quad;
+pub mod texture;
 
 
 pub fn screen_space_to_draw_space(point: (i32, i32), window_dimensions: (u32, u32)) -> (f32, f32) {
@@ -51,6 +52,10 @@ pub enum DrawCommand<'text> {
         roundness_percent: f32,
         color: crate::Color,
     },
+    /// Sampled image resource
+    Image {
+        // TODO: This
+    },
 }
 
 /// Bundles Renderer with required context for an easy-to-use construct.
@@ -59,7 +64,6 @@ pub enum DrawCommand<'text> {
 /// (and to all view element render-functions by extension).
 pub struct ContextualRenderer<'frame> {
     pub renderer: &'frame mut Renderer,
-
     pub device: &'frame wgpu::Device,
     // TODO: See whether `queue.write_buffer` can be ordered properly
     pub queue: &'frame wgpu::Queue,
@@ -94,6 +98,9 @@ pub struct Renderer {
     // quad_bind_group_layout: wgpu::BindGroupLayout,
     quad_render_pipeline: wgpu::RenderPipeline,
 
+    // image_render_pipeline: wgpu::RenderPipeline,
+    image_render_pipeline: (),
+
     pub text_renderer: font::TextRenderer,
 }
 
@@ -118,6 +125,7 @@ impl Renderer {
             quad,
             // quad_bind_group_layout,
             quad_render_pipeline,
+            image_render_pipeline: (),
             text_renderer,
         }
     }
@@ -178,6 +186,10 @@ impl Renderer {
             DrawCommand::Text(section) => {
                 self.text_renderer.queue_section(section);
                 return;
+            }
+
+            DrawCommand::Image { } => {
+                todo!()
             }
         } // match
 

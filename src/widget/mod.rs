@@ -3,7 +3,7 @@ mod circle_button;
 mod text;
 mod image;
 
-pub use self::image::Image;
+pub use self::image::{Image, IncludedImages};
 pub use circle_button::CircleButton;
 pub use button::Button;
 pub use text::Text;

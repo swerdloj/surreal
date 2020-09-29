@@ -140,23 +140,25 @@ macro_rules! include_fonts {
     ( $($alias:ident => $font_path:expr),+ $(,)? ) => {{
         let mut fonts = Vec::new();
 
-        let mut has_default = false;
+        let mut aliases = std::collections::HashSet::new();
+
         $(
             let font_bytes = include_bytes!($font_path);
             let font = wgpu_glyph::ab_glyph::FontArc::try_from_slice(font_bytes).unwrap();
             
             let alias = stringify!($alias);
-            if alias == "default" {
-                has_default = true;
+
+            if !aliases.insert(alias) {
+                panic!("Font alias `{}` already exists", alias);
             }
 
             fonts.push((alias, font));
         )+
 
-        if !has_default {
+        if !aliases.contains("default") {
             panic!("Included fonts does not contain a `default` alias. This is required by surreal.");
         }
 
         fonts
-    };
-}}
+    }}
+}

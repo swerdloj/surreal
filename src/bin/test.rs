@@ -19,7 +19,7 @@ fn main() {
         VStack! {
             // TODO: This
             // Image::new("image")
-            //     .resource("resource_name")
+            //     .resource("public_domain")
             //     .fit_to_width(200),
 
             Button::new("text_button")
@@ -126,17 +126,17 @@ fn main() {
         default => "../../res/JetBrainsMono/JetBrainsMono-Medium.ttf",
     };
 
-    // TODO: This + pass to app
-    // let theme = include_theme!("../../res/themes/default.theme");
+    let images = include_images! {
+        public_domain => "../../res/images/public_domain.png",
+    };
 
     // TODO: This + pass to app
-    // let image_resources = include_images!(
-    //     alias => "../path/to/image.ext",
-    // );
+    // let theme = include_theme!("../../res/themes/default.theme");
 
     let mut app = Application::new(ApplicationSettings {
         title: "Surreal Test",
         fonts,
+        images,
         ..Default::default()
     });
 
