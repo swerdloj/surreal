@@ -1,12 +1,6 @@
 use wgpu::*;
 use wgpu::util::{DeviceExt, BufferInitDescriptor, make_spirv};
 
-pub mod primitive {
-    pub const RECTANGLE: u32 = 0;
-    pub const ROUNDED_RECTANGLE: u32 = 1;
-    pub const CIRCLE: u32 = 2;
-}
-
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct Uniforms {
@@ -100,9 +94,9 @@ impl Quad {
         });
 
         let uniform_data = Uniforms {
-            window_dimensions: (window_dimensions. 0 as f32, window_dimensions.1 as f32).into(),
+            window_dimensions: (window_dimensions.0 as f32, window_dimensions.1 as f32).into(),
             color: (1.0, 0.0, 0.0, 1.0).into(),
-            primitive_type: primitive::RECTANGLE,
+            primitive_type: 0,
             center: (0.0, 0.0).into(),
             circle_radius: 0.0,
             primitive_width: 0.0,
@@ -156,9 +150,7 @@ impl Quad {
     }
 
     // Quad will always outlive the RenderPass
-    pub fn render<'a, 'b>(&'a self, render_pass: &mut RenderPass<'b>/*, pipeline: &'b RenderPipeline */)
-    where 'a: 'b {
-        // render_pass.set_pipeline(pipeline);
+    pub fn render<'a, 'b>(&'a self, render_pass: &mut RenderPass<'b>) where 'a: 'b {
         render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
         render_pass.set_index_buffer(self.index_buffer.slice(..));
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
@@ -197,14 +189,11 @@ impl Quad {
         })
     }
 
-    pub fn create_render_pipeline(device: &Device, 
-                                  layout: &BindGroupLayout,
-                                  color_format: TextureFormat,
-    ) -> RenderPipeline {
+    pub fn create_render_pipeline(device: &Device, layout: &BindGroupLayout) -> RenderPipeline {
         let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
+            label: Some("quad_render_pipeline"),
             bind_group_layouts: &[layout],
             push_constant_ranges: &[],
-            label: Some("quad_render_pipeline"),
         });
 
         // TODO: This is even more tedious with wgpu 0.6.0
@@ -228,6 +217,7 @@ impl Quad {
         let frag_module = device.create_shader_module(frag_data);
 
         device.create_render_pipeline(&RenderPipelineDescriptor {
+            label: Some("quad_render_pipeline_descriptor"),
             layout: Some(&pipeline_layout),
             vertex_stage: ProgrammableStageDescriptor {
                 module: &vert_module,
@@ -246,7 +236,7 @@ impl Quad {
             primitive_topology: PrimitiveTopology::TriangleList,
             // NOTE: The following enables simple alpha-blending
             color_states: &[ColorStateDescriptor {
-                format: color_format,
+                format: crate::TEXTURE_FORMAT,
                 color_blend: BlendDescriptor {
                     src_factor: BlendFactor::SrcAlpha,
                     dst_factor: BlendFactor::OneMinusSrcAlpha,
@@ -269,7 +259,6 @@ impl Quad {
             sample_count: 1,
             sample_mask: !0,
             alpha_to_coverage_enabled: false,
-            label: Some("quad_render_pipeline_descriptor"),
         })
     }
 }

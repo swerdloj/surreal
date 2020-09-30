@@ -14,8 +14,15 @@ macro_rules! size_of {
 
 
 pub mod font;
-mod quad;
 pub mod texture;
+mod quad;
+
+
+mod primitive {
+    pub const RECTANGLE: u32 = 0;
+    pub const ROUNDED_RECTANGLE: u32 = 1;
+    pub const CIRCLE: u32 = 2;
+}
 
 
 pub fn screen_space_to_draw_space(point: (i32, i32), window_dimensions: (u32, u32)) -> (f32, f32) {
@@ -28,9 +35,9 @@ pub fn screen_space_to_draw_space(point: (i32, i32), window_dimensions: (u32, u3
 }
 
 /// Objects able to be drawn by the renderer
-pub enum DrawCommand<'text> {
+pub enum DrawCommand<'a> {
     /// Text as represented by a layed-out Section
-    Text(&'text glyph_brush::OwnedSection),
+    Text(&'a glyph_brush::OwnedSection),
     /// A simple circle
     Circle {
         center: (i32, i32),
@@ -54,7 +61,10 @@ pub enum DrawCommand<'text> {
     },
     /// Sampled image resource
     Image {
-        // TODO: This
+        alias: &'a str,
+        top_left: (i32, i32),
+        width: u32,
+        height: u32,
     },
 }
 
@@ -93,13 +103,15 @@ impl<'frame> ContextualRenderer<'frame> {
 pub struct Renderer {
     // Quad essentially serves as a brush with relevant information being
     // passed through vertices/uniforms
-    quad: quad::Quad,
-
-    // quad_bind_group_layout: wgpu::BindGroupLayout,
+    ui_quad: quad::Quad,
+    quad_bind_group_layout: wgpu::BindGroupLayout,
     quad_render_pipeline: wgpu::RenderPipeline,
 
-    // image_render_pipeline: wgpu::RenderPipeline,
-    image_render_pipeline: (),
+
+    texture_map: texture::TextureMap,
+    texture_quad: texture::TextureQuad,
+    texture_bind_group_layout: wgpu::BindGroupLayout,
+    texture_render_pipeline: wgpu::RenderPipeline,
 
     pub text_renderer: font::TextRenderer,
 }
@@ -107,12 +119,11 @@ pub struct Renderer {
 // Reference: https://github.com/hecrj/iced/blob/master/wgpu/src/
 
 impl Renderer {
-    pub fn new(device: &wgpu::Device, text_renderer: font::TextRenderer) -> Self {
+    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, fonts: font::IncludedFonts, image_resources: crate::widget::IncludedImages) -> Self {
         let quad_bind_group_layout = crate::render::quad::Quad::bind_group_layout(device);
-        let quad_render_pipeline = crate::render::quad::Quad::create_render_pipeline(device, &quad_bind_group_layout, crate::TEXTURE_FORMAT);
-        
+        let quad_render_pipeline = crate::render::quad::Quad::create_render_pipeline(device, &quad_bind_group_layout);
         // Default -- will be adjusted by render calls
-        let quad = quad::Quad::new(
+        let ui_quad = quad::Quad::new(
             device,
             &quad_bind_group_layout,
             (1, 1),
@@ -121,11 +132,32 @@ impl Renderer {
             0,
         );
 
+        let texture_bind_group_layout = texture::Texture::bind_group_layout(device);
+        let texture_render_pipeline = texture::Texture::create_render_pipeline(device, &texture_bind_group_layout);
+        let texture_map = texture::TextureMap::from_images(
+            image_resources, 
+            &texture_bind_group_layout, 
+            device, 
+            queue
+        );
+        let texture_quad = texture::TextureQuad::new();
+
+        let text_renderer = font::TextRenderer::from_fonts(
+            fonts, 
+            device, 
+            crate::TEXTURE_FORMAT
+        );
+
         Self {
-            quad,
-            // quad_bind_group_layout,
+            ui_quad,
+            quad_bind_group_layout,
             quad_render_pipeline,
-            image_render_pipeline: (),
+
+            texture_map,
+            texture_quad,
+            texture_bind_group_layout,
+            texture_render_pipeline,
+
             text_renderer,
         }
     }
@@ -133,12 +165,12 @@ impl Renderer {
     pub fn draw(&mut self, command: DrawCommand, device: &wgpu::Device, _queue: &wgpu::Queue, target: &wgpu::TextureView, encoder: &mut wgpu::CommandEncoder, window_dimensions: (u32, u32)) {       
         match command {
             DrawCommand::Circle { center, radius, color } => {
-                self.quad.update_vertices(device, window_dimensions, (center.0 - radius as i32, center.1 - radius as i32), radius*2, radius*2);
-                self.quad.update_uniforms(device, encoder, quad::Uniforms {
+                self.ui_quad.update_vertices(device, window_dimensions, (center.0 - radius as i32, center.1 - radius as i32), radius*2, radius*2);
+                self.ui_quad.update_uniforms(device, encoder, quad::Uniforms {
                     color: color.into(),
                     window_dimensions: (window_dimensions.0 as f32, window_dimensions.1 as f32).into(),
                     center: (center.0 as f32, center.1 as f32).into(),
-                    primitive_type: quad::primitive::CIRCLE,
+                    primitive_type: primitive::CIRCLE,
                     circle_radius: radius as f32,
                     primitive_width: 0.0,
                     primitive_height: 0.0,
@@ -147,11 +179,11 @@ impl Renderer {
             }
 
             DrawCommand::Rect { top_left, width, height, color } => {
-                self.quad.update_vertices(device, window_dimensions, top_left, width, height);
-                self.quad.update_uniforms(device, encoder,quad::Uniforms {
+                self.ui_quad.update_vertices(device, window_dimensions, top_left, width, height);
+                self.ui_quad.update_uniforms(device, encoder,quad::Uniforms {
                     window_dimensions: (window_dimensions.0 as f32, window_dimensions.1 as f32).into(),
                     color: color.into(),
-                    primitive_type: quad::primitive::RECTANGLE,
+                    primitive_type: primitive::RECTANGLE,
                     center: (0.0, 0.0).into(),
                     circle_radius: 0.0,
                     primitive_width: 0.0,
@@ -161,16 +193,16 @@ impl Renderer {
             }
 
             DrawCommand::RoundedRect { top_left, width, height, mut roundness_percent, color } => {
-                self.quad.update_vertices(device, window_dimensions, top_left, width, height);
+                self.ui_quad.update_vertices(device, window_dimensions, top_left, width, height);
                 
                 // roundness = clamp(min(half_width, half_height), 0, 100)
                 if roundness_percent < 0.0 {roundness_percent = 0.0;} else if roundness_percent > 100.0 {roundness_percent = 100.0;}
                 let roundness = (0.01 * roundness_percent) * std::cmp::min::<u32>(width, height) as f32 / 2.0;
                 
-                self.quad.update_uniforms(device, encoder, quad::Uniforms {
+                self.ui_quad.update_uniforms(device, encoder, quad::Uniforms {
                     window_dimensions: (window_dimensions.0 as f32, window_dimensions.1 as f32).into(),
                     color: color.into(),
-                    primitive_type: quad::primitive::ROUNDED_RECTANGLE,
+                    primitive_type: primitive::ROUNDED_RECTANGLE,
                     center: (
                         top_left.0 as f32 + width as f32 / 2.0, 
                         top_left.1 as f32 + height as f32 / 2.0,
@@ -188,14 +220,21 @@ impl Renderer {
                 return;
             }
 
-            DrawCommand::Image { } => {
-                todo!()
+            DrawCommand::Image { alias, top_left, width, height } => {
+                self.texture_quad.update_vertices(device, window_dimensions, top_left, width, height);
+                
+                let mut render_pass = Self::create_render_pass(encoder, target);
+                render_pass.set_pipeline(&self.texture_render_pipeline);
+                
+                let texture = self.texture_map.get(alias);
+                self.texture_quad.render(&mut render_pass, texture);
+                return;
             }
         } // match
 
         let mut render_pass = Self::create_render_pass(encoder, target);
         render_pass.set_pipeline(&self.quad_render_pipeline);
-        self.quad.render(&mut render_pass);
+        self.ui_quad.render(&mut render_pass);
     }
 
     fn create_render_pass<'a>(encoder: &'a mut wgpu::CommandEncoder, target: &'a wgpu::TextureView) -> wgpu::RenderPass<'a> {

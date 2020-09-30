@@ -56,8 +56,8 @@ pub struct Application {
 
     timer: crate::timing::Timer,
 
-    fonts: Option<crate::render::font::IncludedFonts>,
-    images: crate::render::texture::TextureMap,
+    renderer: crate::render::Renderer,
+
     global_theme: crate::style::Theme,
 
     fit_window_to_view: bool,
@@ -73,28 +73,23 @@ impl Application {
 
         let timer = crate::timing::Timer::from_sdl2_context(&sdl.context);
 
-        let images = crate::render::texture::TextureMap::from_images(settings.images, &gpu.device, &gpu.queue);
+        let renderer = crate::render::Renderer::new(
+            &gpu.device, 
+            &gpu.queue, 
+            settings.fonts, 
+            settings.images
+        );
 
         Application {
             sdl,
             gpu,
             timer,
-            fonts: Some(settings.fonts),
-            images,
+            renderer,
             global_theme: crate::style::DEFAULT_THEME,
 
             fit_window_to_view: settings.fit_window_to_view,
             is_minimized: false,
         }
-    }
-
-    // FIXME: This isn't the best solution, but I don't want to pass fonts into `run`
-    fn take_fonts(&mut self) -> crate::render::font::IncludedFonts {
-        if self.fonts.is_none() {
-            panic!("Fonts were already moved")
-        }
-
-        self.fonts.take().unwrap()
     }
 
     fn resize_swap_chain(&mut self, width: u32, height: u32) {
@@ -106,17 +101,11 @@ impl Application {
 
     pub fn run<Msg: crate::EmptyMessage + 'static>(&mut self, view: &mut dyn View<Msg>) {
         let mut event_pump = self.sdl.context.event_pump().unwrap();
-        
-        let mut text_renderer = crate::render::font::TextRenderer::from_fonts(
-            self.take_fonts(),
-            &self.gpu.device, 
-            crate::TEXTURE_FORMAT
-        );
 
         let mut message_queue = crate::MessageQueue::new();
 
-        view._init(&mut text_renderer, &self.global_theme);
-        view.layout(&mut text_renderer, &self.global_theme, true);
+        view._init(&mut self.renderer.text_renderer, &self.global_theme);
+        view.layout(&mut self.renderer.text_renderer, &self.global_theme, true);
 
         // TODO: Account for when the view changes
         if self.fit_window_to_view {
@@ -125,11 +114,6 @@ impl Application {
             self.sdl.window.set_size(width, height).unwrap();
             self.resize_swap_chain(width, height);
         }
-
-        let mut renderer = crate::render::Renderer::new(
-            &self.gpu.device,
-            text_renderer,
-        );
 
         self.timer.start();
 
@@ -146,7 +130,7 @@ impl Application {
                 match event {
                     Event::Quit {..} => {
                         #[cfg(feature = "frame-time")]
-                        println!("Average frame time: {}", frame_time_accumulator as f64 / num_frames as f64);
+                        println!("Average frame time: {}ms", frame_time_accumulator as f64 / num_frames as f64);
                         println!("Exiting main loop...");
                         break 'main_loop;
                     }
@@ -176,15 +160,14 @@ impl Application {
             }
 
             if should_resize {
-                view._init(&mut renderer.text_renderer, &self.global_theme);
-                view.layout(&mut renderer.text_renderer, &self.global_theme, true);
+                view._init(&mut self.renderer.text_renderer, &self.global_theme);
+                view.layout(&mut self.renderer.text_renderer, &self.global_theme, true);
             }
-
             
             // FIXME: wgpu panics at "Outdated" when the render surface changes (on window minimize)
             // This solves the issue, but I feel like there is a better solution
             if !self.is_minimized {
-                self.render_view(&mut renderer, view);
+                self.render_view(view);
             }
             
             #[cfg(feature = "frame-time")] {
@@ -197,7 +180,7 @@ impl Application {
         }
     }
 
-    fn render_view<Msg: crate::EmptyMessage + 'static>(&mut self, renderer: &mut crate::render::Renderer, view: &mut dyn View<Msg>) {
+    fn render_view<Msg: crate::EmptyMessage + 'static>(&mut self, view: &mut dyn View<Msg>) {
         let frame = self.gpu.swap_chain.get_current_frame().unwrap();
                 
         let mut encoder = self.gpu.device.create_command_encoder(&CommandEncoderDescriptor {
@@ -221,7 +204,7 @@ impl Application {
 
         // Bundle the renderer and context for user-side simplicity
         let mut renderer_with_context = crate::render::ContextualRenderer {
-            renderer,
+            renderer: &mut self.renderer,
             device: &self.gpu.device,
             queue: &self.gpu.queue,
             target: &frame.output.view,
@@ -236,7 +219,7 @@ impl Application {
         // This is so wgpu_glyph can cache the text, meaning this call should not be made inside `View`
         // Using individual draw calls per `Section` raises CPU usage from <1% to >5% (>22% in debug build)
         // NOTE: Placing this here satisfies the above, but sacrifices layering/ordering (see GitHub card)
-        renderer.text_renderer.render_queue(&self.gpu.device, &frame.output.view, &mut encoder, self.gpu.sc_desc.width, self.gpu.sc_desc.height);
+        self.renderer.text_renderer.render_queue(&self.gpu.device, &frame.output.view, &mut encoder, self.gpu.sc_desc.width, self.gpu.sc_desc.height);
 
         // Does everything requested by the ContextualRenderer
         self.gpu.queue.submit(Some(encoder.finish()));
