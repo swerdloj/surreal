@@ -17,10 +17,9 @@ fn main() {
         },
 
         VStack! {
-            // TODO: This
-            // Image::new("image")
-            //     .resource("public_domain")
-            //     .fit_to_width(200),
+            Image::new("image")
+                .resource("public_domain")
+                .fit_to_width(150),
 
             Button::new("text_button")
                 .text(Text::new("") // <-- Nested id is not needed
@@ -33,18 +32,34 @@ fn main() {
                 .text("This is a text widget with text inside")
                 .scale(30.0),
 
-            CircleButton::new("circle_button")
-                .color(Color::LIGHT_GRAY)
-                .radius(40)
-                .character(Text::character('-')
-                    .color(Color::BLACK)
-                    .scale(100.0)
-                )
-                .on_click(|mut state| {
-                    @counter -= 1;
+            HStack! {
+                // TODO: CircleButton with image should automatically scale
+                // the image's largest dimension to the radius and account for
+                // internal padding
+                CircleButton::new("with_image")
+                    .image(Image::new("")
+                        .resource("plus")
+                        .fit_to_width(70)
+                    )
+                    .radius(40)
+                    .color(Color::LIGHT_GRAY)
+                    .on_click(|mut state| {
+                        @counter += 1;
+                        Message::UpdateCounter
+                    }),
 
-                    Message::UpdateCounter
-                }),
+                CircleButton::new("circle_button")
+                    .color(Color::LIGHT_GRAY)
+                    .radius(40)
+                    .character(Text::character('-')
+                        .color(Color::BLACK)
+                        .scale(100.0)
+                    )
+                    .on_click(|mut state| {
+                        @counter -= 1;
+                        Message::UpdateCounter
+                    }),
+            },
 
             Text::new("counter_text")
                 .text("Counter: 0")
@@ -115,7 +130,7 @@ fn main() {
 
     // NOTE: Future: Define view via DSL. Hook can then be used to implement the view
     view.set_hook(|view, _message| {
-        let test: &mut Text<_> = get_widget_by_id(view, "more_text");
+        let test: &mut Text<_> = get_widget_by_id(view, "more_text").unwrap();
         test.set_text("Hook");
 
         // let text: &mut Text<_> = view.get_widget_by_id("more_text");
@@ -128,6 +143,7 @@ fn main() {
 
     let images = include_images! {
         public_domain => "../../res/images/public_domain.png",
+        plus => "../../res/images/plus_thing.png",
     };
 
     // TODO: This + pass to app

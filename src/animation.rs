@@ -1,5 +1,5 @@
 pub enum AnimationStatus {
-    Animating,
+    InProgress,
     Complete,
 }
 
@@ -24,7 +24,7 @@ impl<T> Animation<T> {
         if self.elapsed <= self.duration {
             (self.animation)(target, self.elapsed);
 
-            AnimationStatus::Animating
+            AnimationStatus::InProgress
         } else {
             AnimationStatus::Complete
         }

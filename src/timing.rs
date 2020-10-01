@@ -1,42 +1,31 @@
-/*
-    This file is taken from my WIP Engine
-*/
+use std::time;
 
-// Using sdl2 for timing is "not recommended" (but it is easy to use)
-// TODO: Rewrite this using the std::time API
-
-
-/// Timer in miliseconds (ms)
+/// Timer in miliseconds (ms). Valid only for ~500,000,000 years.
 pub struct Timer {
+    /// Time of instantiation
+    instant: time::Instant,
     /// The time as of last check
-    previous_time: u32,
+    previous_time: u64,
     /// Total time elapsed since starting the timer (while unpaused)
-    pub elapsed: u32,
+    pub elapsed: u64,
     /// Whether or not the timer is paused
     pub paused: bool,
-    
-    timer: sdl2::TimerSubsystem,
 }
 
 impl Timer {
     /// Create a `Timer`. Paused by default
-    pub fn new(timer: sdl2::TimerSubsystem) -> Self {
+    pub fn new() -> Self {
         Timer {
+            instant: time::Instant::now(),
             previous_time: 0,
             elapsed: 0,
             paused: true,
-            timer,
         }
-    }
-
-    /// Create `Timer` from an sdl2 context. Paused by default
-    pub fn from_sdl2_context(context: &sdl2::Sdl) -> Self {
-        Self::new(context.timer().expect("Failed to init timer subsystem"))
     }
 
     /// Begin keeping track of time
     pub fn start(&mut self) {
-        self.previous_time = self.timer.ticks();
+        self.previous_time = self.instant.elapsed().as_millis() as u64;
         self.paused = false;
     }
 
@@ -50,24 +39,12 @@ impl Timer {
         self.paused = false;
     }
 
-    /// Toggles the timer being paused
-    /// 
-    /// Returns `true` if this call pauses or `false` if unpauses.
-    pub fn toggle_paused(&mut self) -> bool {
-        if self.paused {
-            self.resume();
-            false
-        } else {
-            self.pause();
-            true
-        }
-    }
-
     /// Updates `elapsed` with time since last call. Returns this value (delta time).
-    pub fn tick(&mut self) -> u32 {
-        let ticks = self.timer.ticks();
-        let delta_time = ticks - self.previous_time;
-        self.previous_time = ticks;
+    pub fn tick(&mut self) -> u64 {
+        let elapsed = self.instant.elapsed().as_millis() as u64;
+
+        let delta_time = elapsed - self.previous_time;
+        self.previous_time = elapsed;
 
         if !self.paused {
             self.elapsed += delta_time;
@@ -82,17 +59,17 @@ impl Timer {
     }
 
     /// Locks thread for the remainder of one frame (if applicable)
-    /// - `target_fps`: Frames per second in ms
-    /// - `delta_time`: Time since last frame in ms
-    /// - `threshold`: Threshold in ms for skipping sleep
+    /// - `target_fps`: Desired frames per second
+    /// - `delta_time`: Time since last frame in ms (returned by `Timer::tick()`)
+    /// - `threshold`: Threshold in ms for skipping sleep (e.g.: don't sleep for less than 2 ms)
     // NOTE: This is a static method to force the user to call timer.tick() explicitly
-    pub fn await_fps(target_fps: u32, delta_time: u32, threshold: u32) {
+    pub fn await_fps(target_fps: u64, delta_time: u64, threshold: u64) {
         let ms_per_frame = 1000 / target_fps;
         // println!("delta_time: {}", delta_time);
         if (delta_time < ms_per_frame) && (ms_per_frame - delta_time > threshold) {
             // println!("Sleeping for {} ms", ms_per_frame - delta_time);
             std::thread::sleep(
-                std::time::Duration::new(0, (ms_per_frame - delta_time) * 1_000_000)
+                time::Duration::from_millis(ms_per_frame - delta_time)
             );
         }
     }

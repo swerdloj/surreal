@@ -30,28 +30,28 @@ pub trait View<Msg: crate::EmptyMessage> {
     fn translate(&mut self, dx: i32, dy: i32);
 
     /// This function is called when views are initialized. Use this to implement the theme defaults.
-    fn init(&mut self, _text_renderer: &mut crate::render::font::TextRenderer, _theme: &crate::style::Theme) {
+    fn init(&mut self, _renderer: &mut crate::render::Renderer, _theme: &crate::style::Theme) {
 
     }
 
     // FIXME: Is there any way to prevent this from being replaced?
     // FIXME: The naming of this and `init` is dangerous
     /// The default init function for views. Do not implement this; use `View::init()` instead
-    fn _init(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
-        self.init(text_renderer, theme);
+    fn _init(&mut self, renderer: &mut crate::render::Renderer, theme: &crate::style::Theme) {
+        self.init(renderer, theme);
         for child in self.children() {
             match child {
                 crate::ViewElement::Widget(widget) => {
-                    widget.init(text_renderer, theme);
+                    widget.init(renderer, theme);
                 }
                 crate::ViewElement::View(view) => {
-                    view._init(text_renderer, theme);
+                    view._init(renderer, theme);
                 }
             }
         }
     }
 
-    fn layout(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme, is_root: bool);
+    fn layout(&mut self, renderer: &mut crate::render::Renderer, theme: &crate::style::Theme, is_root: bool);
 
     fn render_width(&self) -> u32;
     fn render_height(&self) -> u32;
@@ -130,25 +130,27 @@ pub(crate) fn call_hook<Msg: crate::EmptyMessage>(view: &mut dyn View<Msg>, mess
     }
 }
 
-pub fn get_widget_by_id<'a, T: crate::widget::Widget<Msg>, Msg: crate::EmptyMessage>(view: &'a mut dyn View<Msg>, id: &str) -> &'a mut Box<T> {
+/// Returns `None` if the widget was not found
+pub fn get_widget_by_id<'a, T: crate::widget::Widget<Msg>, Msg: crate::EmptyMessage>(view: &'a mut dyn View<Msg>, id: &str) -> Option<&'a mut Box<T>> {
     for child in view.children() {
         match child {
             crate::ViewElement::Widget(widget) => {
                 if widget.id() == id {
                     unsafe {
                         // TODO: Add a type-check to ensure safety such as `Widget::type`
-                        return &mut *(widget as *mut Box<dyn crate::widget::Widget<Msg>> as *mut Box<T>);
+                        return Some(&mut *(widget as *mut Box<dyn crate::widget::Widget<Msg>> as *mut Box<T>));
                     }
                 }
             }
 
             crate::ViewElement::View(view) => {
-                // FIXME: This always crashes if child is not found here
-                return get_widget_by_id::<T, Msg>(&mut (**view), id);
+                let result = get_widget_by_id::<T, Msg>(&mut (**view), id);
+                if result.is_some() {
+                    return result;
+                }
             }
         }
     }
 
-    // FIXME: Return Option instead of panic
-    panic!("No widget with id `{}` exists", id);
+    None
 }

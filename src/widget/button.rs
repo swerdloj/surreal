@@ -85,7 +85,7 @@ impl<Msg: EmptyMessage> Widget<Msg> for Button<Msg> where Msg: 'static {
         }
     }
 
-    fn init(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
+    fn init(&mut self, renderer: &mut crate::render::Renderer, theme: &crate::style::Theme) {
         if self.roundness.is_none() {
             self.roundness = Some(theme.widget_styles.buttons.roundness);
         }
@@ -96,7 +96,7 @@ impl<Msg: EmptyMessage> Widget<Msg> for Button<Msg> where Msg: 'static {
         
         // TODO: Adjust the button's size according to text (if text is too big)
         if let Some(text) = &mut self.text {
-            text.init(text_renderer, theme);
+            text.init(renderer, theme);
         }
 
     }

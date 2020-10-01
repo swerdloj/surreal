@@ -104,13 +104,13 @@ pub struct Renderer {
     // Quad essentially serves as a brush with relevant information being
     // passed through vertices/uniforms
     ui_quad: quad::Quad,
-    quad_bind_group_layout: wgpu::BindGroupLayout,
+    // quad_bind_group_layout: wgpu::BindGroupLayout,
     quad_render_pipeline: wgpu::RenderPipeline,
 
 
-    texture_map: texture::TextureMap,
+    pub texture_map: texture::TextureMap,
     texture_quad: texture::TextureQuad,
-    texture_bind_group_layout: wgpu::BindGroupLayout,
+    // texture_bind_group_layout: wgpu::BindGroupLayout,
     texture_render_pipeline: wgpu::RenderPipeline,
 
     pub text_renderer: font::TextRenderer,
@@ -123,14 +123,7 @@ impl Renderer {
         let quad_bind_group_layout = crate::render::quad::Quad::bind_group_layout(device);
         let quad_render_pipeline = crate::render::quad::Quad::create_render_pipeline(device, &quad_bind_group_layout);
         // Default -- will be adjusted by render calls
-        let ui_quad = quad::Quad::new(
-            device,
-            &quad_bind_group_layout,
-            (1, 1),
-            (0, 0),
-            0,
-            0,
-        );
+        let ui_quad = quad::Quad::new(device, &quad_bind_group_layout);
 
         let texture_bind_group_layout = texture::Texture::bind_group_layout(device);
         let texture_render_pipeline = texture::Texture::create_render_pipeline(device, &texture_bind_group_layout);
@@ -140,7 +133,7 @@ impl Renderer {
             device, 
             queue
         );
-        let texture_quad = texture::TextureQuad::new();
+        let texture_quad = texture::TextureQuad::new(device);
 
         let text_renderer = font::TextRenderer::from_fonts(
             fonts, 
@@ -150,12 +143,12 @@ impl Renderer {
 
         Self {
             ui_quad,
-            quad_bind_group_layout,
+            // quad_bind_group_layout,
             quad_render_pipeline,
 
             texture_map,
             texture_quad,
-            texture_bind_group_layout,
+            // texture_bind_group_layout,
             texture_render_pipeline,
 
             text_renderer,

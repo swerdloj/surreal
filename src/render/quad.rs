@@ -78,14 +78,14 @@ impl Quad {
         ]
     }
 
-    pub fn new(device: &Device, layout: &BindGroupLayout, window_dimensions: (u32, u32), top_left: (i32, i32), width: u32, height: u32) -> Self {
+    pub fn new(device: &Device, layout: &BindGroupLayout) -> Self {
         let index_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("quad_index_buffer"),
             contents: bytemuck::cast_slice(&[0u32, 1, 2, 0, 2, 3]), 
             usage: BufferUsage::INDEX,
         });
 
-        let vertices = Self::vertices_from_rect(window_dimensions, top_left, width, height);
+        let vertices = Self::vertices_from_rect((1, 1), (1, 1), 1, 1);
 
         let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("quad_vertex_buffer"),
@@ -94,7 +94,7 @@ impl Quad {
         });
 
         let uniform_data = Uniforms {
-            window_dimensions: (window_dimensions.0 as f32, window_dimensions.1 as f32).into(),
+            window_dimensions: (1.0, 1.0).into(),
             color: (1.0, 0.0, 0.0, 1.0).into(),
             primitive_type: 0,
             center: (0.0, 0.0).into(),

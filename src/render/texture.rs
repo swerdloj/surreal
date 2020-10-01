@@ -1,6 +1,6 @@
 use wgpu::*;
-// use wgpu::util::{DeviceExt, BufferInitDescriptor};
-use wgpu::Texture as wgpu_Texture;
+use wgpu::util::{DeviceExt, BufferInitDescriptor, make_spirv};
+// use wgpu::Texture as wgpu_Texture;
 
 pub struct TextureMap {
     textures: std::collections::HashMap<&'static str, Texture>,
@@ -27,20 +27,76 @@ impl TextureMap {
             panic!("No such texture exists: `{}`", alias);
         }
     }
+
+    pub fn get_resource_dimensions(&self, alias: &str) -> (u32, u32) {
+        let texture = self.get(alias);
+
+        (texture.width, texture.height)
+    }
 }
 
+// TODO: Uniforms
 pub(super) struct TextureQuad {
     vertex_buffer: Buffer,
     index_buffer: Buffer,
 }
 
 impl TextureQuad {
-    pub fn new() -> Self {
-        todo!()
+    // TODO: Account for texture coords
+    fn vertices_from_rect(window_dimensions: (u32, u32), mut top_left: (i32, i32), width: u32, height: u32) -> [TextureVertex; 4] {
+        // Make top-left (0, 0) where down is +y-axis
+        top_left.1 = window_dimensions.1 as i32 - top_left.1;
+        
+        let quad_top_left = super::screen_space_to_draw_space(top_left, window_dimensions);
+        
+        let top_right = (top_left.0 + width as i32, top_left.1);
+        let quad_top_right = super::screen_space_to_draw_space(top_right, window_dimensions);
+        
+        let bottom_left = (top_left.0, top_left.1 - height as i32);
+        let quad_bottom_left = super::screen_space_to_draw_space(bottom_left, window_dimensions);
+        
+        let bottom_right = (top_left.0 + width as i32, top_left.1 - height as i32);
+        let quad_bottom_right = super::screen_space_to_draw_space(bottom_right, window_dimensions);
+    
+        [
+            TextureVertex::new((quad_top_right.0, quad_top_right.1, 0.0), (1.0, 1.0)), // Top right
+            TextureVertex::new((quad_top_left.0, quad_top_left.1, 0.0), (0.0, 1.0)), // Top left
+            TextureVertex::new((quad_bottom_left.0, quad_bottom_left.1, 0.0), (0.0, 0.0)), // Bottom left
+            TextureVertex::new((quad_bottom_right.0, quad_bottom_right.1, 0.0), (1.0, 0.0)), // Bottom right
+        ]
+    }
+
+    pub fn new(device: &Device) -> Self {
+        let index_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("texture_quad_index_buffer"),
+            contents: bytemuck::cast_slice(&[0u32, 1, 2, 0, 2, 3]), 
+            usage: BufferUsage::INDEX,
+        });
+
+        let vertices = Self::vertices_from_rect((1,1), (1,1), 1, 1);
+
+        let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("quad_vertex_buffer"),
+            contents: bytemuck::cast_slice(&vertices),
+            usage: BufferUsage::VERTEX, // | BufferUsage::COPY_DST,
+        });
+
+        Self {
+            vertex_buffer,
+            index_buffer,
+        }
     }
 
     pub fn update_vertices(&mut self, device: &Device, window_dimensions: (u32, u32), top_left: (i32, i32), width: u32, height: u32) {
-        todo!()
+        let vertices = Self::vertices_from_rect(window_dimensions, top_left, width, height);
+        
+        // FIXME: Should I use a staging buffer or map_write() instead?
+        // FIXME: Queue::write_buffer is ideal, but doesn't work
+        self.vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("quad_vertex_buffer"),
+            contents: bytemuck::cast_slice(&vertices),
+            usage: BufferUsage::VERTEX, // BufferUsage::COPY_SRC
+        });
     }
 
     // Data always outlives render_pass
@@ -98,6 +154,7 @@ impl TextureVertex {
 unsafe impl bytemuck::Pod for TextureVertex {}
 unsafe impl bytemuck::Zeroable for TextureVertex {}
 
+
 // References: https://github.com/sotrh/learn-wgpu/blob/master/code/intermediate/tutorial13-threading/src/model.rs
 // &           https://github.com/sotrh/learn-wgpu/blob/master/code/intermediate/tutorial13-threading/src/texture.rs
 // &           https://sotrh.github.io/learn-wgpu/beginner/tutorial5-textures/#cleaning-things-up
@@ -105,19 +162,11 @@ unsafe impl bytemuck::Zeroable for TextureVertex {}
 pub struct Texture {
     width: u32,
     height: u32,
-    texture: wgpu_Texture,
-    view: TextureView,
-    sampler: Sampler,
+    // texture: wgpu_Texture,
+    // view: TextureView,
+    // sampler: Sampler,
     bind_group: BindGroup,
 }
-
-// TODO: Pipelines
-// TODO: Vertices
-// TODO: Vertex Buffers
-// TODO: Uniforms
-
-// TODO: Use a similar approach to quads, maintaining only one instance and
-// swapping around the vertex buffer and contents
 
 impl Texture {
     pub fn new(image_resource: image::DynamicImage, bind_group_layout: &BindGroupLayout, device: &Device, queue: &Queue) -> Self {
@@ -166,7 +215,7 @@ impl Texture {
             address_mode_v: AddressMode::ClampToEdge,
             address_mode_w: AddressMode::ClampToEdge,
             mag_filter: FilterMode::Linear,
-            min_filter: FilterMode::Nearest,
+            min_filter: FilterMode::Linear,
             mipmap_filter: FilterMode::Nearest,
             ..Default::default()
         });
@@ -178,9 +227,9 @@ impl Texture {
         Self {
             width,
             height,
-            view,
-            texture,
-            sampler,
+            // view,
+            // texture,
+            // sampler,
             bind_group,
         }
     }
@@ -233,6 +282,23 @@ impl Texture {
     }
 
     pub(crate) fn create_render_pipeline(device: &Device, bind_group_layout: &BindGroupLayout) -> RenderPipeline {
+        use std::io::Read;
+        let mut spirv_buffer1 = Vec::new();
+        let mut spirv_buffer2 = Vec::new();
+
+        let vert_shader = include_str!("../../shaders/image/texture.vert");
+        let mut vert_spirv = glsl_to_spirv::compile(vert_shader, glsl_to_spirv::ShaderType::Vertex).unwrap();
+        vert_spirv.read_to_end(&mut spirv_buffer1).unwrap();
+        let vert_data = make_spirv(&spirv_buffer1);
+        
+        let frag_shader = include_str!("../../shaders/image/texture.frag");
+        let mut frag_spirv = glsl_to_spirv::compile(frag_shader, glsl_to_spirv::ShaderType::Fragment).unwrap();
+        frag_spirv.read_to_end(&mut spirv_buffer2).unwrap();
+        let frag_data = make_spirv(&spirv_buffer2);
+
+        let vert_module = device.create_shader_module(vert_data);
+        let frag_module = device.create_shader_module(frag_data);
+        
         let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("texture_pipeline_layout"),
             bind_group_layouts: &[bind_group_layout],
@@ -242,8 +308,14 @@ impl Texture {
         device.create_render_pipeline(&RenderPipelineDescriptor {
             label: Some("texture_render_pipeline"),
             layout: Some(&pipeline_layout),
-            vertex_stage: todo!(),
-            fragment_stage: todo!(),
+            vertex_stage: ProgrammableStageDescriptor {
+                module: &vert_module,
+                entry_point: "main",
+            },
+            fragment_stage: Some(ProgrammableStageDescriptor {
+                module: &frag_module,
+                entry_point: "main",
+            }),
             rasterization_state: Some(RasterizationStateDescriptor {
                 front_face: FrontFace::Ccw,
                 cull_mode: CullMode::None,

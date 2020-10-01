@@ -31,6 +31,7 @@ pub struct ApplicationSettings {
     pub fit_window_to_view: bool,
     pub resizable: bool,
     pub use_vsync: bool,
+    pub target_fps: u64,
 }
 
 impl Default for ApplicationSettings {
@@ -46,6 +47,7 @@ impl Default for ApplicationSettings {
             fit_window_to_view: true,
             resizable: true,
             use_vsync: false,
+            target_fps: 60,
         }
     }
 }
@@ -57,6 +59,7 @@ pub struct Application {
     timer: crate::timing::Timer,
 
     renderer: crate::render::Renderer,
+    target_fps: u64,
 
     global_theme: crate::style::Theme,
 
@@ -71,7 +74,7 @@ impl Application {
             init_wgpu(&sdl.window, settings.use_vsync)
         );
 
-        let timer = crate::timing::Timer::from_sdl2_context(&sdl.context);
+        let timer = crate::timing::Timer::new();
 
         let renderer = crate::render::Renderer::new(
             &gpu.device, 
@@ -85,6 +88,7 @@ impl Application {
             gpu,
             timer,
             renderer,
+            target_fps: settings.target_fps,
             global_theme: crate::style::DEFAULT_THEME,
 
             fit_window_to_view: settings.fit_window_to_view,
@@ -104,8 +108,8 @@ impl Application {
 
         let mut message_queue = crate::MessageQueue::new();
 
-        view._init(&mut self.renderer.text_renderer, &self.global_theme);
-        view.layout(&mut self.renderer.text_renderer, &self.global_theme, true);
+        view._init(&mut self.renderer, &self.global_theme);
+        view.layout(&mut self.renderer, &self.global_theme, true);
 
         // TODO: Account for when the view changes
         if self.fit_window_to_view {
@@ -122,6 +126,9 @@ impl Application {
         #[cfg(feature = "frame-time")]
         let mut num_frames: u64 = 0;
         
+        // Always render the first frame
+        let mut should_render = true;
+
         'main_loop: loop {
             #[cfg(feature = "frame-time")]
             let start = std::time::Instant::now();
@@ -156,18 +163,25 @@ impl Application {
             for message in message_queue.drain() {
                 // FIXME: I can't make `call_hook` part of `View`
                 crate::view::call_hook(view, &message);
+                // If view resized, render the view
                 should_resize |= view.propogate_message(&message);
             }
 
             if should_resize {
-                view._init(&mut self.renderer.text_renderer, &self.global_theme);
-                view.layout(&mut self.renderer.text_renderer, &self.global_theme, true);
+                view._init(&mut self.renderer, &self.global_theme);
+                view.layout(&mut self.renderer, &self.global_theme, true);
+                // render the updated view
+                should_render = true;
             }
             
             // FIXME: wgpu panics at "Outdated" when the render surface changes (on window minimize)
             // This solves the issue, but I feel like there is a better solution
             if !self.is_minimized {
-                self.render_view(view);
+                // If nothing is happening, there is no need to render at 60FPS
+                if should_render {
+                    self.render_view(view);
+                    should_render = false;
+                }
             }
             
             #[cfg(feature = "frame-time")] {
@@ -175,8 +189,10 @@ impl Application {
                 num_frames += 1;
             }
 
+            // FIXME: Why does this alternate between 1 and 16 ms? 
+            // dt should always be 16 except the first frame
             let dt = self.timer.tick();
-            crate::timing::Timer::await_fps(60, dt, 5);
+            crate::timing::Timer::await_fps(self.target_fps, dt, 5);
         }
     }
 

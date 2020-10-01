@@ -134,13 +134,13 @@ impl<Msg: EmptyMessage> Widget<Msg> for CircleButton<Msg> where Msg: 'static {
         }
     }
 
-    fn init(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
+    fn init(&mut self, renderer: &mut crate::render::Renderer, theme: &crate::style::Theme) {
         match &mut self.contents {
             Contents::Char(text) => {
-                text.init(text_renderer, theme);
+                text.init(renderer, theme);
             }
             Contents::Image(image) => {
-                image.init(text_renderer, theme);
+                image.init(renderer, theme);
             }
             Contents::None => {}
         }

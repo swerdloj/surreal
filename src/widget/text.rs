@@ -169,7 +169,7 @@ impl<Msg: EmptyMessage> Widget<Msg> for Text<Msg> where Msg: 'static{
         }
     }
 
-    fn init(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {       
+    fn init(&mut self, renderer: &mut crate::render::Renderer, theme: &crate::style::Theme) {       
         // Create section
         let color = if let Some(color) = &self.color {
             color
@@ -184,7 +184,7 @@ impl<Msg: EmptyMessage> Widget<Msg> for Text<Msg> where Msg: 'static{
         let text = wgpu_glyph::Text::new(&self.text)
             .with_scale(self.scale)
             .with_color(color.as_array())
-            .with_font_id(text_renderer.get_font_id(&self.font));
+            .with_font_id(renderer.text_renderer.get_font_id(&self.font));
         
         let section = wgpu_glyph::Section {
             text: vec![
@@ -193,7 +193,7 @@ impl<Msg: EmptyMessage> Widget<Msg> for Text<Msg> where Msg: 'static{
             ..wgpu_glyph::Section::default()
         };
 
-        let (width, height) = text_renderer.get_section_bounds(&section);
+        let (width, height) = renderer.text_renderer.get_section_bounds(&section);
         
         // Set widget bounds
         self.bounds.width = width;

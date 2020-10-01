@@ -70,6 +70,11 @@ pub const DEFAULT_THEME: Theme = Theme {
             roundness: 50.0,
             circle_button_radius: 50,
         },
+
+        internal_padding: Padding {
+            vertical: 5,
+            horizontal: 5,
+        }
     },
 };
 
@@ -107,6 +112,7 @@ pub struct Buttons {
 
 pub struct Widgets {
     pub buttons: Buttons,
+    pub internal_padding: Padding,
 }
 
 pub struct Padding {

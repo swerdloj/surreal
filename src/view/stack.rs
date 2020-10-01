@@ -42,7 +42,7 @@ impl<Msg: EmptyMessage> super::View<Msg> for Stack<Msg> where Msg: 'static{
         self.state = Some(state);
     }
 
-    fn init(&mut self, _text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme) {
+    fn init(&mut self, _renderer: &mut crate::render::Renderer, theme: &crate::style::Theme) {
         if let Some(_alignment) = &self.alignment {} 
         else {
             self.alignment = Some(theme.default_alignment);
@@ -63,7 +63,7 @@ impl<Msg: EmptyMessage> super::View<Msg> for Stack<Msg> where Msg: 'static{
     }
 
     // TODO: Utilize alignment (create helper functions for each alignment?)
-    fn layout(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::style::Theme, is_root: bool) {
+    fn layout(&mut self, renderer: &mut crate::render::Renderer, theme: &crate::style::Theme, is_root: bool) {
         let mut current_x = 0;
         let mut current_y = 0;
         let mut view_width = 0;
@@ -81,7 +81,7 @@ impl<Msg: EmptyMessage> super::View<Msg> for Stack<Msg> where Msg: 'static{
 
             match child {
                 ViewElement::View(view) => {
-                    view.layout(text_renderer, theme, false);
+                    view.layout(renderer, theme, false);
                     let size = view.render_size();
                     child_width = size.0; 
                     child_height = size.1;

@@ -1,9 +1,10 @@
 // TODO: Go through and decide what needs to be pub, pub(crate), & private
 pub mod application;
-pub mod state;
+
 pub mod style;
 pub mod animation;
 
+pub mod state;
 pub mod view;
 pub mod widget;
 pub mod component;
@@ -12,6 +13,7 @@ pub mod render;
 pub mod bounding_rect;
 
 pub mod timing;
+
 
 pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
 
@@ -56,7 +58,6 @@ pub mod surreal_macros {
 
 /// Types and derive macro required when using `#derive(IntoViewElement)`
 pub mod view_element {
-    pub use macros::IntoViewElement;
     pub use crate::{IntoViewElement, ViewElement, EmptyMessage};
 }
 
@@ -71,21 +72,23 @@ impl EmptyMessage for () {
     }
 }
 
-pub struct MessageQueue<Msg : EmptyMessage> {
+pub struct MessageQueue<Msg> {
     queue: Vec<Msg>,
 }
 
 impl<Msg: EmptyMessage> MessageQueue<Msg> {
     fn new() -> Self {
-        Self {queue: Vec::new()}
+        Self { queue: Vec::new() }
     }
 
+    /// Add a message to the message queue, ignoring empty messages
     pub fn push(&mut self, message: Msg) {
         if message.is_message() {
             self.queue.push(message);
         }
     }
 
+    /// Empties the message queue. Return iterator over the contents.
     fn drain(&mut self) -> std::vec::Drain<Msg> {
         self.queue.drain(..)
     }
@@ -249,6 +252,7 @@ macro_rules! TestStack {
 }
 
 // TEMP: Here for testing purposes
+#[allow(unused)]
 fn test() {
     use prelude::*;
 

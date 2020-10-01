@@ -49,29 +49,47 @@ impl<Msg: EmptyMessage + 'static> Widget<Msg> for Image<Msg> {
         &mut self.should_resize
     }
 
-    fn init(&mut self, text_renderer: &mut crate::render::font::TextRenderer, theme: &crate::prelude::Theme) {
+    // TODO: Do something about setting both a width and a height constraint
+    fn init(&mut self, renderer: &mut crate::render::Renderer, _theme: &crate::prelude::Theme) {
         if self.resource == "" {
             panic!("Image `{}` was never assigned a resource. Use `.resource('resource_alias')` to assign this.");
         }
 
-        // TODO: Do something to load/store the image & set bounds
-        todo!()
+        let (width, height) = renderer.texture_map.get_resource_dimensions(&self.resource);
+        
+        let mut scale_factor: f32 = 1.0;
+        if let Some(width_constraint) = self.width_constraint {
+            scale_factor = width_constraint as f32 / width as f32;
+        }
+        if let Some(height_constraint) = self.height_constraint {
+            scale_factor = height_constraint as f32 / width as f32;
+        }
+
+        self.bounds.width = (width as f32 * scale_factor).round() as _;
+        self.bounds.height = (height as f32 * scale_factor).round() as _;
     }
 
     fn place(&mut self, x: i32, y: i32) {
-        todo!()
+        self.bounds.x = x;
+        self.bounds.y = y;
     }
 
     fn translate(&mut self, dx: i32, dy: i32) {
-        todo!()
+        self.bounds.x += dx;
+        self.bounds.y += dy;
     }
 
-    fn render_size(&self, /*text_renderer: &mut crate::render::font::TextRenderer,*/ theme: &crate::prelude::Theme) -> (u32, u32) {
-        todo!()
+    fn render_size(&self, _theme: &crate::prelude::Theme) -> (u32, u32) {
+        self.bounds.dimensions()
     }
 
-    fn render(&self, renderer: &mut crate::render::ContextualRenderer, theme: &crate::prelude::Theme) {
-        todo!()
+    fn render(&self, renderer: &mut crate::render::ContextualRenderer, _theme: &crate::prelude::Theme) {
+        renderer.draw(crate::render::DrawCommand::Image {
+            alias: &self.resource,
+            top_left: self.bounds.top_left(),
+            width: self.bounds.width,
+            height: self.bounds.height,
+        });
     }
 }
 
