@@ -3,7 +3,7 @@ use super::Widget;
 
 pub struct Image<Msg> {
     id: &'static str,
-    resource: String,
+    pub resource: String,
     pub bounds: crate::bounding_rect::BoundingRect,
     width_constraint: Option<u32>,
     height_constraint: Option<u32>,
@@ -38,6 +38,16 @@ impl<Msg> Image<Msg> {
         self.height_constraint = Some(height);
         self
     }
+
+    pub fn set_scaled_width(&mut self, width: u32) {
+        self.width_constraint = Some(width);
+        self.should_resize = true;
+    }
+
+    pub fn set_scaled_height(&mut self, height: u32) {
+        self.height_constraint = Some(height);
+        self.should_resize = true;
+    }
 }
 
 impl<Msg: EmptyMessage + 'static> Widget<Msg> for Image<Msg> {
@@ -52,7 +62,7 @@ impl<Msg: EmptyMessage + 'static> Widget<Msg> for Image<Msg> {
     // TODO: Do something about setting both a width and a height constraint
     fn init(&mut self, renderer: &mut crate::render::Renderer, _theme: &crate::prelude::Theme) {
         if self.resource == "" {
-            panic!("Image `{}` was never assigned a resource. Use `.resource('resource_alias')` to assign this.");
+            panic!("Image `{}` was never assigned a resource. Use `.resource('resource_alias')` to assign this.", self.id);
         }
 
         let (width, height) = renderer.texture_map.get_resource_dimensions(&self.resource);

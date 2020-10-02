@@ -64,6 +64,7 @@ pub struct Application {
     global_theme: crate::style::Theme,
 
     fit_window_to_view: bool,
+    is_resizable: bool,
     is_minimized: bool,
 }
 
@@ -92,6 +93,7 @@ impl Application {
             global_theme: crate::style::DEFAULT_THEME,
 
             fit_window_to_view: settings.fit_window_to_view,
+            is_resizable: settings.resizable,
             is_minimized: false,
         }
     }
@@ -109,15 +111,26 @@ impl Application {
         let mut message_queue = crate::MessageQueue::new();
 
         view._init(&mut self.renderer, &self.global_theme);
-        view.layout(&mut self.renderer, &self.global_theme, true);
-
-        // TODO: Account for when the view changes
-        if self.fit_window_to_view {
+        view.layout(&mut self.renderer, &self.global_theme, (self.gpu.sc_desc.width, self.gpu.sc_desc.height), true);
+        
+        {
             let (width, height) = view.render_size();
-            println!("Resizing window to view dimensions: {}x{}", width, height);
-            self.sdl.window.set_size(width, height).unwrap();
-            self.resize_swap_chain(width, height);
+            
+            // TODO: Account for when the view changes
+            if self.fit_window_to_view {
+                println!("Resizing window to view dimensions: {}x{}", width, height);
+                self.sdl.window.set_size(width, height).unwrap();
+                self.resize_swap_chain(width, height);
+            }
+
+            // FIXME: This needs to be updated when views become dynamic
+            if self.is_resizable {
+                self.sdl.window.set_minimum_size(width, height).unwrap();
+            }
         }
+
+        // FIXME: Window dimensions depend on the view size, but view size depends on window dimensions, so this happens twice
+        view.layout(&mut self.renderer, &self.global_theme, (self.gpu.sc_desc.width, self.gpu.sc_desc.height), true);
 
         self.timer.start();
 
@@ -130,8 +143,13 @@ impl Application {
         let mut should_render = true;
 
         'main_loop: loop {
+            // Time since last frame
+            let _dt = self.timer.tick();
+
             #[cfg(feature = "frame-time")]
             let start = std::time::Instant::now();
+
+            let mut should_resize = false;
 
             for event in event_pump.poll_iter() {
                 match event {
@@ -146,6 +164,8 @@ impl Application {
                         println!("Window resized to {}x{}", &width, &height);
 
                         self.resize_swap_chain(width as u32, height as u32);
+                        // Centered views need this
+                        should_resize = true;
                     }
 
                     Event::Window { win_event: WindowEvent::Minimized, .. } => self.is_minimized = true,
@@ -159,7 +179,7 @@ impl Application {
                 view.propogate_event(&event, &mut message_queue);
             }
             
-            let mut should_resize = false;
+            
             for message in message_queue.drain() {
                 // FIXME: I can't make `call_hook` part of `View`
                 crate::view::call_hook(view, &message);
@@ -169,7 +189,7 @@ impl Application {
 
             if should_resize {
                 view._init(&mut self.renderer, &self.global_theme);
-                view.layout(&mut self.renderer, &self.global_theme, true);
+                view.layout(&mut self.renderer, &self.global_theme, (self.gpu.sc_desc.width, self.gpu.sc_desc.height), true);
                 // render the updated view
                 should_render = true;
             }
@@ -189,10 +209,7 @@ impl Application {
                 num_frames += 1;
             }
 
-            // FIXME: Why does this alternate between 1 and 16 ms? 
-            // dt should always be 16 except the first frame
-            let dt = self.timer.tick();
-            crate::timing::Timer::await_fps(self.target_fps, dt, 5);
+            self.timer.await_fps(self.target_fps, 5);
         }
     }
 
@@ -210,7 +227,7 @@ impl Application {
                     attachment: &frame.output.view,
                     resolve_target: None,
                     ops: Operations {
-                        load: LoadOp::Clear(crate::Color::AUBERGINE.into()),
+                        load: LoadOp::Clear(self.global_theme.colors.background.into()),
                         store: true,
                     },
                 },

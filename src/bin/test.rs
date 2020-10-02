@@ -33,13 +33,10 @@ fn main() {
                 .scale(30.0),
 
             HStack! {
-                // TODO: CircleButton with image should automatically scale
-                // the image's largest dimension to the radius and account for
-                // internal padding
+                // Contents are automatically scaled to fit within the CircleButton
                 CircleButton::new("with_image")
                     .image(Image::new("")
                         .resource("plus")
-                        .fit_to_width(70)
                     )
                     .radius(40)
                     .color(Color::LIGHT_GRAY)
@@ -130,13 +127,14 @@ fn main() {
 
     // NOTE: Future: Define view via DSL. Hook can then be used to implement the view
     view.set_hook(|view, _message| {
-        let test: &mut Text<_> = get_widget_by_id(view, "more_text").unwrap();
+        // Two ways to get widgets
+
+        let test = GetWidget!(view.more_text as Text);
         test.set_text("Hook");
 
-        // let text: &mut Text<_> = view.get_widget_by_id("more_text");
+        let _test2 = GetWidget!(Button(reset) from view);
     });
 
-    // NOTE: The extra '../' here is because this is in the '/bin' folder
     let fonts = include_fonts! {
         default => "../../res/JetBrainsMono/JetBrainsMono-Medium.ttf",
     };

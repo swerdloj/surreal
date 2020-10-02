@@ -47,7 +47,7 @@ pub const DEFAULT_THEME: Theme = Theme {
         horizontal: 20,
     },
 
-    default_alignment: crate::Alignment::Center,
+    default_alignment: crate::Alignment::Left,
 
     widget_padding: Padding {
         vertical: 10,

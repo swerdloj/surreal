@@ -51,7 +51,7 @@ pub trait View<Msg: crate::EmptyMessage> {
         }
     }
 
-    fn layout(&mut self, renderer: &mut crate::render::Renderer, theme: &crate::style::Theme, is_root: bool);
+    fn layout(&mut self, renderer: &mut crate::render::Renderer, theme: &crate::style::Theme, constraints: (u32, u32), is_root: bool);
 
     fn render_width(&self) -> u32;
     fn render_height(&self) -> u32;
@@ -153,4 +153,17 @@ pub fn get_widget_by_id<'a, T: crate::widget::Widget<Msg>, Msg: crate::EmptyMess
     }
 
     None
+}
+
+#[macro_export]
+macro_rules! GetWidget {
+    ($ty:ident($id:ident) from $view:expr) => {
+        get_widget_by_id::<$ty<_>, _>($view, stringify!($id))
+            .expect(&format!("No such widget `{}`", stringify!($id)))
+    };
+
+    ($view:ident.$id:ident as $ty:ident) => {
+        get_widget_by_id::<$ty<_>, _>($view, stringify!($id))
+            .expect(&format!("No such widget `{}`", stringify!($id)))
+    };
 }

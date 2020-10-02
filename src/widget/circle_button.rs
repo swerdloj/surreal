@@ -139,9 +139,18 @@ impl<Msg: EmptyMessage> Widget<Msg> for CircleButton<Msg> where Msg: 'static {
             Contents::Char(text) => {
                 text.init(renderer, theme);
             }
+
             Contents::Image(image) => {
+                // Scale the image to fit within the button with the given padding
+                let (width, height) = renderer.texture_map.get_resource_dimensions(&image.resource);
+                if width > height {
+                    image.set_scaled_width(self.radius * 2 - 2 * theme.widget_styles.internal_padding.horizontal);
+                } else {
+                    image.set_scaled_height(self.radius * 2 - 2 * theme.widget_styles.internal_padding.vertical);
+                }
                 image.init(renderer, theme);
             }
+            
             Contents::None => {}
         }
 

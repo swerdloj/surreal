@@ -51,6 +51,7 @@ pub mod surreal_macros {
         VStack, 
         HStack, 
         State,
+        GetWidget,
         include_fonts,
         include_images,
     };
@@ -158,10 +159,31 @@ pub enum Alignment {
     Center,
 }
 
+impl Alignment {
+    pub fn is_left_aligned(&self) -> bool {
+        if let Alignment::Left = self {true} else {false}
+    }
+    pub fn is_right_aligned(&self) -> bool {
+        if let Alignment::Right = self {true} else {false}
+    }
+    pub fn is_centered(&self) -> bool {
+        if let Alignment::Center = self {true} else {false}
+    }
+}
+
 /// Element orientation
 pub enum Orientation {
     Vertical,
     Horizontal,
+}
+
+impl Orientation {
+    pub fn is_vertical(&self) -> bool {
+        if let Orientation::Vertical = self {true} else {false}
+    }
+    pub fn is_horizontal(&self) -> bool {
+        if let Orientation::Horizontal = self {true} else {false}
+    }
 }
 
 pub enum ViewElement<Msg: EmptyMessage> {

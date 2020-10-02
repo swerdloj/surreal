@@ -43,8 +43,7 @@ impl<Msg: EmptyMessage> super::View<Msg> for Stack<Msg> where Msg: 'static{
     }
 
     fn init(&mut self, _renderer: &mut crate::render::Renderer, theme: &crate::style::Theme) {
-        if let Some(_alignment) = &self.alignment {} 
-        else {
+        if self.alignment.is_none() {
             self.alignment = Some(theme.default_alignment);
         }
     }
@@ -62,8 +61,16 @@ impl<Msg: EmptyMessage> super::View<Msg> for Stack<Msg> where Msg: 'static{
         self.hook.as_ref()
     }
 
-    // TODO: Utilize alignment (create helper functions for each alignment?)
-    fn layout(&mut self, renderer: &mut crate::render::Renderer, theme: &crate::style::Theme, is_root: bool) {
+    // TODO: Right alignment
+    // TODO: Finish Center alignment
+    // TODO: Center should also center the view within the window vertically
+    fn layout(&mut self, renderer: &mut crate::render::Renderer, theme: &crate::style::Theme, constraints: (u32, u32), is_root: bool) {
+        let alignment = if let Some(alignment) = self.alignment {
+            alignment
+        } else {
+            theme.default_alignment
+        };
+        
         let mut current_x = 0;
         let mut current_y = 0;
         let mut view_width = 0;
@@ -71,7 +78,9 @@ impl<Msg: EmptyMessage> super::View<Msg> for Stack<Msg> where Msg: 'static{
 
         // Initial padding within window
         if is_root {
-            current_x += theme.view_padding.horizontal;
+            if !alignment.is_centered() {
+                current_x += theme.view_padding.horizontal;
+            }
             current_y += theme.view_padding.vertical;
         }
         
@@ -81,21 +90,32 @@ impl<Msg: EmptyMessage> super::View<Msg> for Stack<Msg> where Msg: 'static{
 
             match child {
                 ViewElement::View(view) => {
-                    view.layout(renderer, theme, false);
+                    view.layout(renderer, theme, constraints, false);
                     let size = view.render_size();
                     child_width = size.0; 
                     child_height = size.1;
                     
-                    view.translate(current_x as i32, current_y as i32);
+                    if alignment.is_centered() {
+                        if self.orientation.is_vertical() {
+                            view.translate((constraints.0 / 2 - child_width / 2) as i32, current_y as i32);
+                        }
+                    } else {   
+                        view.translate(current_x as i32, current_y as i32);
+                    }
                 }
                 
                 ViewElement::Widget(widget) => {
-                    widget.place(current_x as i32, current_y as i32);
-                    // println!("Placing {} at ({}, {})", widget.id(), current_x, current_y);
-                    
                     let size = widget.render_size(theme);
                     child_width = size.0; 
                     child_height = size.1;
+
+                    if alignment.is_centered() {
+                        if self.orientation.is_vertical() {
+                            widget.place((constraints.0 / 2 - child_width / 2) as i32, current_y as i32);
+                        }
+                    } else {   
+                        widget.place(current_x as i32, current_y as i32);
+                    }
                 }
             }
 

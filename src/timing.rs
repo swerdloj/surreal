@@ -58,18 +58,22 @@ impl Timer {
         self.elapsed = 0;
     }
 
-    /// Locks thread for the remainder of one frame (if applicable)
-    /// - `target_fps`: Desired frames per second
-    /// - `delta_time`: Time since last frame in ms (returned by `Timer::tick()`)
-    /// - `threshold`: Threshold in ms for skipping sleep (e.g.: don't sleep for less than 2 ms)
-    // NOTE: This is a static method to force the user to call timer.tick() explicitly
-    pub fn await_fps(target_fps: u64, delta_time: u64, threshold: u64) {
+    /// Locks the thread until the `target_fps` is met based on the last call to `tick()`. 
+    ///   
+    /// Does nothing if more time has elapsed since the last call to `tick()` than desired fps as ms per frame.
+    /// - `threshold` determines whether to skip sleeping if the desired time per frame is close to the time since last `tick()`
+    // NOTE: Sleep for one less ms since timing is not guarenteed to be exact.
+    pub fn await_fps(&mut self, target_fps: u64, threshold: u64) {
         let ms_per_frame = 1000 / target_fps;
-        // println!("delta_time: {}", delta_time);
-        if (delta_time < ms_per_frame) && (ms_per_frame - delta_time > threshold) {
-            // println!("Sleeping for {} ms", ms_per_frame - delta_time);
+        let elapsed = self.instant.elapsed().as_millis() as u64;
+        let dt = elapsed - self.previous_time;
+        // This is actually the time per frame
+        // println!("sleep dt: {}", dt); 
+
+        if (dt < ms_per_frame) && (ms_per_frame - dt > threshold) {
+            // println!("Sleeping for {} ms", ms_per_frame - dt - 1);
             std::thread::sleep(
-                time::Duration::from_millis(ms_per_frame - delta_time)
+                time::Duration::from_millis(ms_per_frame - dt - 1)
             );
         }
     }
