@@ -46,12 +46,12 @@ fn main() {
                     }),
 
                 CircleButton::new("circle_button")
-                    .color(Color::LIGHT_GRAY)
-                    .radius(40)
                     .character(Text::character('-')
                         .color(Color::BLACK)
                         .scale(100.0)
                     )
+                    .radius(40)
+                    .color(Color::LIGHT_GRAY)
                     .on_click(|mut state| {
                         @counter -= 1;
                         Message::UpdateCounter

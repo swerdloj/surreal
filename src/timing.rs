@@ -67,6 +67,7 @@ impl Timer {
         let ms_per_frame = 1000 / target_fps;
         let elapsed = self.instant.elapsed().as_millis() as u64;
         let dt = elapsed - self.previous_time;
+        
         // This is actually the time per frame
         // println!("sleep dt: {}", dt); 
 

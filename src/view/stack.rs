@@ -63,7 +63,7 @@ impl<Msg: EmptyMessage> super::View<Msg> for Stack<Msg> where Msg: 'static{
 
     // TODO: Right alignment
     // TODO: Finish Center alignment
-    // TODO: Center should also center the view within the window vertically
+    // TODO: Test with VStack root and HStack root (ensure same behavior)
     fn layout(&mut self, renderer: &mut crate::render::Renderer, theme: &crate::style::Theme, constraints: (u32, u32), is_root: bool) {
         let alignment = if let Some(alignment) = self.alignment {
             alignment
@@ -81,6 +81,7 @@ impl<Msg: EmptyMessage> super::View<Msg> for Stack<Msg> where Msg: 'static{
             if !alignment.is_centered() {
                 current_x += theme.view_padding.horizontal;
             }
+            // FIXME: Is this correct?
             current_y += theme.view_padding.vertical;
         }
         
@@ -155,6 +156,13 @@ impl<Msg: EmptyMessage> super::View<Msg> for Stack<Msg> where Msg: 'static{
                     self.bounds.height = view_height;
                 }
             }
+        }
+
+        // Translate the view to be centered vertically within its bounds
+        if alignment.is_centered() {
+            let view_center_y = self.bounds.height / 2;
+            let bounds_center_y = constraints.1 / 2;
+            self.translate(0, bounds_center_y as i32 - view_center_y as i32);
         }
     }
 

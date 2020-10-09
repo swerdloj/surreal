@@ -98,7 +98,6 @@ impl<Msg: EmptyMessage> Widget<Msg> for Button<Msg> where Msg: 'static {
         if let Some(text) = &mut self.text {
             text.init(renderer, theme);
         }
-
     }
 
     fn handle_event(&mut self, event: &Event, state: RefMut<State>, messages: &mut crate::MessageQueue<Msg>) -> crate::EventResponse {

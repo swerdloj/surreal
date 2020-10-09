@@ -1,5 +1,5 @@
 [package]
-name = "macros"
+name = "proc-macros"
 version = "0.0.1"
 authors = ["swerdloj <swerdloj@andrews.edu>"]
 edition = "2018"

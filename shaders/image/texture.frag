@@ -11,6 +11,8 @@ layout(location = 0) in vec2 vert_tex_coord;
 layout(location = 0) out vec4 out_color;
 
 void main() {
+    // TODO: Use multiple samples and average results
+    //       Look into WebGPU filters / low-pass filter
     vec4 texture_color = texture(
         sampler2D(image_texture, texture_sampler), 
         vert_tex_coord

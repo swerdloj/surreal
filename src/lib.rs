@@ -41,7 +41,7 @@ pub mod prelude {
 /// Re-exports all macros related to surreal
 pub mod surreal_macros {
     // Procedural macros
-    pub use macros::{
+    pub use proc_macros::{
         Stateful, 
         EmptyMessage,
     };
@@ -216,7 +216,6 @@ impl<Msg: EmptyMessage, T: view::View<Msg> + 'static> IntoViewElement<Msg, __Vie
 
 //////////// TESTING /////////////
 
-// FIXME: ?? but it works
 struct Hack1;struct Hack2;struct Hack3;struct Hack4;struct Hack5;
 
 trait InsertViewElement<Msg: EmptyMessage, ImplConstraint> {
@@ -263,14 +262,22 @@ macro_rules! TestStack {
         let mut children = Vec::new();
 
         $(
-            // let child = Box::new($component);
-            // child.insert_elements(&mut children);
-
             ($component).insert_elements(&mut children);
         )+
 
         Stack::new(Orientation::Vertical, children)
     }};
+}
+
+// TODO: Support multiple expressions and an else case
+macro_rules! Conditional {
+    ( $cond:expr => $block:expr ) => {
+        if $cond {
+            vec![$block]
+        } else {
+            vec![]
+        }
+    };
 }
 
 // TEMP: Here for testing purposes
@@ -284,10 +291,13 @@ fn test() {
 
     let empty1: Vec<Button<()>> = Vec::new();
     let empty2 = ();
+
     let list: Vec<Box<dyn IntoViewElement<(), _>>> = vec![
-        Box::new(Button::new("2")),
-        Box::new(Text::new("3")),
+        Box::new(Button::new("01")),
+        Box::new(Text::new("02")),
     ];
+
+    let condition = true;
 
     let view: Stack<()> = TestStack! {
         // Base case
@@ -297,10 +307,15 @@ fn test() {
         TestStack! {
             CircleButton::new("2"),
             Text::new("3"),
+            empty2,
         },
 
         // List case
         // list,
+
+        Conditional! {
+            condition => Button::new("test")
+        },
 
         // Empty "if" case(s?)
         empty1,

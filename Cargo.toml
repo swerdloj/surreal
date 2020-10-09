@@ -23,7 +23,7 @@ glsl-to-spirv = "0.1.7"
 cgmath = "0.17.0"
 image = "0.23.10"
 
-macros = { path = "./macros" }
+proc-macros = { path = "./proc_macros" }
 
 [dependencies.sdl2]
 version = "0.34.2"

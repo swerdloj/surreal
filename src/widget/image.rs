@@ -126,7 +126,6 @@ macro_rules! include_images {
 
         let mut aliases = std::collections::HashSet::new();
 
-        // TODO: Convert image to wgpu resource. Store that, not DynamicImage.
         $(
             let image_bytes = include_bytes!($image_path);
 
