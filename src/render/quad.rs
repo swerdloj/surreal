@@ -1,5 +1,5 @@
 use wgpu::*;
-use wgpu::util::{DeviceExt, BufferInitDescriptor, make_spirv};
+use wgpu::util::{DeviceExt, BufferInitDescriptor};
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -196,25 +196,8 @@ impl Quad {
             push_constant_ranges: &[],
         });
 
-        // TODO: This is even more tedious with wgpu 0.6.0
-        // Consider switching to shaderc or pre-compiling the shaders
-
-        use std::io::Read;
-        let mut spirv_buffer1 = Vec::new();
-        let mut spirv_buffer2 = Vec::new();
-
-        let vert_shader = include_str!("../../shaders/ui/quad.vert");
-        let mut vert_spirv = glsl_to_spirv::compile(vert_shader, glsl_to_spirv::ShaderType::Vertex).unwrap();
-        vert_spirv.read_to_end(&mut spirv_buffer1).unwrap();
-        let vert_data = make_spirv(&spirv_buffer1);
-        
-        let frag_shader = include_str!("../../shaders/ui/quad.frag");
-        let mut frag_spirv = glsl_to_spirv::compile(frag_shader, glsl_to_spirv::ShaderType::Fragment).unwrap();
-        frag_spirv.read_to_end(&mut spirv_buffer2).unwrap();
-        let frag_data = make_spirv(&spirv_buffer2);
-
-        let vert_module = device.create_shader_module(vert_data);
-        let frag_module = device.create_shader_module(frag_data);
+        let vert_module = device.create_shader_module(wgpu::include_spirv!("../../shaders/ui/quad.vert.spv"));
+        let frag_module = device.create_shader_module(wgpu::include_spirv!("../../shaders/ui/quad.frag.spv"));
 
         device.create_render_pipeline(&RenderPipelineDescriptor {
             label: Some("quad_render_pipeline_descriptor"),

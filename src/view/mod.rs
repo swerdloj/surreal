@@ -77,7 +77,7 @@ pub trait View<Msg: crate::EmptyMessage> {
         }
     }
 
-    fn propogate_event(&mut self, event: &sdl2::event::Event, message_queue: &mut crate::MessageQueue<Msg>) {
+    fn propogate_event(&mut self, event: &crate::event::ApplicationEvent, message_queue: &mut crate::MessageQueue<Msg>) {
         use crate::ViewElement::*;
 
         let state = self.state();

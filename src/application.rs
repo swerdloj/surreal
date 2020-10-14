@@ -1,12 +1,17 @@
 use crate::view::View;
 
-use sdl2::event::{Event, WindowEvent};
+use winit::{
+    event::{Event, WindowEvent},
+    event_loop::{ControlFlow, EventLoop},
+    window::WindowBuilder,
+    dpi::PhysicalSize,
+};
+
 use wgpu::*;
 
 struct WindowSystem {
-    pub context: sdl2::Sdl,
-    _video_subsystem: sdl2::VideoSubsystem,
-    window: sdl2::video::Window,
+    event_loop: Option<EventLoop<()>>,
+    window: winit::window::Window,
 }
 
 struct GraphicsDevice {
@@ -53,7 +58,7 @@ impl Default for ApplicationSettings {
 }
 
 pub struct Application {
-    sdl: WindowSystem,
+    window_system: WindowSystem,
     gpu: GraphicsDevice,
 
     timer: crate::timing::Timer,
@@ -70,9 +75,16 @@ pub struct Application {
 
 impl Application {
     pub fn new(settings: ApplicationSettings) -> Self {
-        let sdl = init_sdl2(settings.title, settings.width, settings.height, settings.resizable);
+        let event_loop = EventLoop::new();
+        let window = WindowBuilder::new()
+            .with_title(settings.title)
+            .with_inner_size(PhysicalSize::new(settings.width, settings.height))
+            .with_resizable(settings.resizable)
+            .build(&event_loop)
+            .unwrap();
+        
         let gpu = futures::executor::block_on(
-            init_wgpu(&sdl.window, settings.use_vsync)
+            init_wgpu(&window, settings.use_vsync)
         );
 
         let timer = crate::timing::Timer::new();
@@ -84,8 +96,13 @@ impl Application {
             settings.images
         );
 
+        let window_system = WindowSystem {
+            event_loop: Some(event_loop),
+            window,  
+        };
+
         Application {
-            sdl,
+            window_system,
             gpu,
             timer,
             renderer,
@@ -105,34 +122,64 @@ impl Application {
         self.gpu.swap_chain = self.gpu.device.create_swap_chain(&self.gpu.render_surface, &self.gpu.sc_desc);
     }
 
+    /// Runs the application with the given view. Targets web if `target_arch` is wasm32
     pub fn run<Msg: crate::EmptyMessage + 'static>(&mut self, view: &mut dyn View<Msg>) {
-        let mut event_pump = self.sdl.context.event_pump().unwrap();
+        #[cfg(not(target_arch = "wasm32"))]
+        self.run_(view);
 
+        #[cfg(target_arch = "wasm32")] {
+            std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+            console_log::init().unwrap();
+            
+            // TEMP: Remove this once confirmed working
+            log::info!("Test");
+
+            use winit::platform::web::WindowExtWebSys;
+            web_sys::window()
+                .and_then(|win| win.document())
+                .and_then(|doc| doc.body())
+                .and_then(|body| {
+                    body.append_child(&web_sys::Element::from(self.window_system.window.canvas()))
+                        .ok()
+                })
+                .expect("Couldn't append canvas to document body");
+
+            self.run_(view);
+        }
+    }
+
+    fn run_<Msg: crate::EmptyMessage + 'static>(&mut self, view: &mut dyn View<Msg>) {
+        // FIXME: winit requires static lifetimes, but these aren't static.
+        //        I can't take ownership of `self` here for the same reason (static closure requires `move`)
+        //        Furthermore, I can't use `run_return` because this needs to work on the web too
+        let this = unsafe { std::mem::transmute::<_, &'static mut Application>(self) };
+        let view = unsafe { std::mem::transmute::<_, &'static mut dyn View<Msg>>(view) };
+        
         let mut message_queue = crate::MessageQueue::new();
 
-        view._init(&mut self.renderer, &self.global_theme);
-        view.layout(&mut self.renderer, &self.global_theme, (self.gpu.sc_desc.width, self.gpu.sc_desc.height), true);
+        view._init(&mut this.renderer, &this.global_theme);
+        view.layout(&mut this.renderer, &this.global_theme, (this.gpu.sc_desc.width, this.gpu.sc_desc.height), true);
         
         {
             let (width, height) = view.render_size();
             
             // TODO: Account for when the view changes
-            if self.fit_window_to_view {
+            if this.fit_window_to_view {
                 println!("Resizing window to view dimensions: {}x{}", width, height);
-                self.sdl.window.set_size(width, height).unwrap();
-                self.resize_swap_chain(width, height);
+                this.window_system.window.set_inner_size(winit::dpi::LogicalSize::new(width, height));
+                this.resize_swap_chain(width, height);
             }
 
             // FIXME: This needs to be updated when views become dynamic
-            if self.is_resizable {
-                self.sdl.window.set_minimum_size(width, height).unwrap();
+            if this.is_resizable {
+                this.window_system.window.set_min_inner_size(Some(winit::dpi::LogicalSize::new(width, height)));
             }
         }
 
         // FIXME: Window dimensions depend on the view size, but view size depends on window dimensions, so this happens twice
-        view.layout(&mut self.renderer, &self.global_theme, (self.gpu.sc_desc.width, self.gpu.sc_desc.height), true);
+        view.layout(&mut this.renderer, &this.global_theme, (this.gpu.sc_desc.width, this.gpu.sc_desc.height), true);
 
-        self.timer.start();
+        this.timer.start();
 
         #[cfg(feature = "frame-time")]
         let mut frame_time_accumulator: u128 = 0;
@@ -141,45 +188,116 @@ impl Application {
         
         // Always render the first frame
         let mut should_render = true;
+        let mut should_resize = false;
 
-        'main_loop: loop {
-            // Time since last frame
-            let _dt = self.timer.tick();
+        let mut mouse_position: (i32, i32) = (0, 0);
 
-            #[cfg(feature = "frame-time")]
-            let start = std::time::Instant::now();
+        let event_loop = this.window_system.event_loop.take().unwrap();
 
-            let mut should_resize = false;
+        // Main loop
+        event_loop.run(move |event, _, control_flow| {
+            // TODO: Figure out the ideal usage of control_flow
+            // *control_flow = ControlFlow::WaitUntil(std::time::Instant::);
+            *control_flow = ControlFlow::Wait;
 
-            for event in event_pump.poll_iter() {
-                match event {
-                    Event::Quit {..} => {
-                        #[cfg(feature = "frame-time")]
-                        println!("Average frame time: {}ms", frame_time_accumulator as f64 / num_frames as f64);
-                        println!("Exiting main loop...");
-                        break 'main_loop;
-                    }
+            let mut application_event = crate::event::ApplicationEvent::None;
 
-                    Event::Window { win_event: WindowEvent::Resized(width, height), .. } => {
-                        println!("Window resized to {}x{}", &width, &height);
+            // Default event handlers
+            match event {
+                // Window close
+                Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
+                    #[cfg(feature = "frame-time")]
+                    println!("Average frame time: {}ms", frame_time_accumulator as f64 / num_frames as f64);
+                    
+                    println!("Exiting main loop...");
+                    *control_flow = ControlFlow::Exit;
+                }
 
-                        self.resize_swap_chain(width as u32, height as u32);
+                // Window resize
+                Event::WindowEvent { event: WindowEvent::Resized(size), .. } => {
+                    let (width, height) = (size.width, size.height);
+                    println!("Window resized to {}x{}", &width, &height);
+
+                    // FIXME: winit does not have min/max events
+                    if width == 0 {
+                        this.is_minimized = true;
+                    } else {
+                        this.is_minimized = false;
+
+                        this.resize_swap_chain(width, height);
                         // Centered views need this
                         should_resize = true;
                     }
+                }
 
-                    Event::Window { win_event: WindowEvent::Minimized, .. } => self.is_minimized = true,
-                    Event::Window { win_event: WindowEvent::Restored, .. } => self.is_minimized = false,
+                // Mouse motion
+                Event::WindowEvent { event: WindowEvent::CursorMoved { position, .. }, .. } => {
+                    let physical = position.to_logical(this.window_system.window.scale_factor());
 
-                    _ => {
-                        // println!("Unhandled event: {:?}", event);
+                    application_event = crate::event::ApplicationEvent::MouseMotion {
+                        position: (physical.x, physical.y),
+                    };
+
+                    mouse_position = (physical.x, physical.y);
+                }
+
+                // Mouse click
+                Event::WindowEvent { event: WindowEvent::MouseInput { button, state, .. }, .. } => {
+                    let button = match button {
+                        winit::event::MouseButton::Left => crate::event::MouseButton::Left,
+                        winit::event::MouseButton::Right => crate::event::MouseButton::Right,
+                        winit::event::MouseButton::Middle => crate::event::MouseButton::Middle,
+                        winit::event::MouseButton::Other(n) => crate::event::MouseButton::Other(n),
+                    };
+
+                    let state = match state {
+                        winit::event::ElementState::Pressed => crate::event::ButtonState::Pressed,
+                        winit::event::ElementState::Released => crate::event::ButtonState::Released,
+                    };
+
+                    application_event = crate::event::ApplicationEvent::MouseButton {
+                        state,
+                        button,
+                        position: mouse_position,
+                    };
+                }
+
+                // Draw to window
+                Event::RedrawRequested(_) => {
+                    // Time since last frame
+                    let _dt = this.timer.tick();
+
+                    #[cfg(feature = "frame-time")]
+                    let start = std::time::Instant::now();
+        
+                    if should_resize {
+                        view._init(&mut this.renderer, &this.global_theme);
+                        view.layout(&mut this.renderer, &this.global_theme, (this.gpu.sc_desc.width, this.gpu.sc_desc.height), true);
+                        // render the updated view
+                        should_render = true;
+                    }
+                    
+                    // If nothing is happening, there is no need to render at 60FPS
+                    if !this.is_minimized && should_render {
+                        this.render_view(view);
+                        should_render = false;
+                        should_resize = false;
+                    }
+
+                    #[cfg(feature = "frame-time")] {
+                        frame_time_accumulator += start.elapsed().as_millis();
+                        num_frames += 1;
                     }
                 }
 
-                view.propogate_event(&event, &mut message_queue);
-            }
+                _ => {
+                    // println!("Unhandled event: {:?}", event);
+                }
+            } // match event
+
+            view.propogate_event(&application_event, &mut message_queue);
             
-            
+            // TODO: Should this happen only once during RedrawRequested?
             for message in message_queue.drain() {
                 // FIXME: I can't make `call_hook` part of `View`
                 crate::view::call_hook(view, &message);
@@ -187,30 +305,14 @@ impl Application {
                 should_resize |= view.propogate_message(&message);
             }
 
-            if should_resize {
-                view._init(&mut self.renderer, &self.global_theme);
-                view.layout(&mut self.renderer, &self.global_theme, (self.gpu.sc_desc.width, self.gpu.sc_desc.height), true);
-                // render the updated view
-                should_render = true;
-            }
-            
-            // FIXME: wgpu panics at "Outdated" when the render surface changes (on window minimize)
-            // This solves the issue, but I feel like there is a better solution
-            if !self.is_minimized {
-                // If nothing is happening, there is no need to render at 60FPS
-                if should_render {
-                    self.render_view(view);
-                    should_render = false;
-                }
-            }
-            
-            #[cfg(feature = "frame-time")] {
-                frame_time_accumulator += start.elapsed().as_millis();
-                num_frames += 1;
+            // Only render if there is a reason to
+            if !this.is_minimized && (should_resize || should_render) {
+                this.window_system.window.request_redraw();
             }
 
-            self.timer.await_fps(self.target_fps, 5);
-        }
+            // FIXME: Is this usage correct with winit?
+            this.timer.await_fps(this.target_fps, 5);
+        });        
     }
 
     fn render_view<Msg: crate::EmptyMessage + 'static>(&mut self, view: &mut dyn View<Msg>) {
@@ -259,39 +361,9 @@ impl Application {
     }
 }
 
-fn init_sdl2(title: &str, width: u32, height: u32, resizable: bool) -> WindowSystem {
-    let sdl2_context = sdl2::init().unwrap();
-    let video_subsystem = sdl2_context.video().unwrap();
 
-    // FIXME: Ugly solution
-    let mut window = if resizable {
-        video_subsystem.window(title, width, height)
-            .position_centered()
-            .resizable()
-            .build()
-            .unwrap()
-    } else {
-        video_subsystem.window(title, width, height)
-            .position_centered()
-            .build()
-            .unwrap()
-    };
-
-    // NOTE: SwapChain panics when a surface dimensions is 1
-    // Resizing a window to be that small doesn't even make sense anyway
-    // TODO: Minumum size should be equal to a title-bar once implemented
-    // Title-bar contains the minimize, maximize, and exit buttons
-    window.set_minimum_size(10, 10).unwrap();
-
-    WindowSystem {
-        context: sdl2_context,
-        _video_subsystem: video_subsystem,
-        window,
-    }
-}
-
-async fn init_wgpu(window: &sdl2::video::Window, use_vsync: bool) -> GraphicsDevice {
-    let (width, height) = window.size();
+async fn init_wgpu(window: &winit::window::Window, use_vsync: bool) -> GraphicsDevice {
+    let (width, height) = window.inner_size().into();
 
     let instance = Instance::new(BackendBit::PRIMARY);
 

@@ -1,5 +1,5 @@
 use wgpu::*;
-use wgpu::util::{DeviceExt, BufferInitDescriptor, make_spirv};
+use wgpu::util::{DeviceExt, BufferInitDescriptor};
 // use wgpu::Texture as wgpu_Texture;
 
 pub struct TextureMap {
@@ -282,22 +282,8 @@ impl Texture {
     }
 
     pub(crate) fn create_render_pipeline(device: &Device, bind_group_layout: &BindGroupLayout) -> RenderPipeline {
-        use std::io::Read;
-        let mut spirv_buffer1 = Vec::new();
-        let mut spirv_buffer2 = Vec::new();
-
-        let vert_shader = include_str!("../../shaders/image/texture.vert");
-        let mut vert_spirv = glsl_to_spirv::compile(vert_shader, glsl_to_spirv::ShaderType::Vertex).unwrap();
-        vert_spirv.read_to_end(&mut spirv_buffer1).unwrap();
-        let vert_data = make_spirv(&spirv_buffer1);
-        
-        let frag_shader = include_str!("../../shaders/image/texture.frag");
-        let mut frag_spirv = glsl_to_spirv::compile(frag_shader, glsl_to_spirv::ShaderType::Fragment).unwrap();
-        frag_spirv.read_to_end(&mut spirv_buffer2).unwrap();
-        let frag_data = make_spirv(&spirv_buffer2);
-
-        let vert_module = device.create_shader_module(vert_data);
-        let frag_module = device.create_shader_module(frag_data);
+        let vert_module = device.create_shader_module(wgpu::include_spirv!("../../shaders/image/texture.vert.spv"));
+        let frag_module = device.create_shader_module(wgpu::include_spirv!("../../shaders/image/texture.frag.spv"));
         
         let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("texture_pipeline_layout"),

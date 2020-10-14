@@ -167,18 +167,18 @@ impl<Msg: EmptyMessage> Widget<Msg> for CircleButton<Msg> where Msg: 'static {
         self.bounds.height = self.radius * 2;
     }
 
-    fn handle_event(&mut self, event: &sdl2::event::Event, state: std::cell::RefMut<crate::state::State>, message_queue: &mut crate::MessageQueue<Msg>) -> crate::EventResponse {
-        use sdl2::event::Event;
+    fn handle_event(&mut self, event: &crate::event::ApplicationEvent, state: std::cell::RefMut<crate::state::State>, message_queue: &mut crate::MessageQueue<Msg>) -> crate::EventResponse {
+        use crate::event::*;
         
         match event {
-            Event::MouseButtonDown { mouse_btn: sdl2::mouse::MouseButton::Left, x, y, .. } => {
+            ApplicationEvent::MouseButton { state: ButtonState::Pressed, button: MouseButton::Left, position: (x, y) } => {
                 if self.contains_point(*x, *y) {
                     self.mouse_down_in_bounds = true;
                     return crate::EventResponse::Consume;
                 }
             }
 
-            Event::MouseButtonUp { mouse_btn: sdl2::mouse::MouseButton::Left, x, y, .. } => {
+            ApplicationEvent::MouseButton { state: ButtonState::Released, button: MouseButton::Left, position: (x, y) } => {
                 if self.mouse_down_in_bounds && self.contains_point(*x, *y) {
                     if let Some(on_click) = &mut self.on_click {
                         message_queue.push((on_click)(state));

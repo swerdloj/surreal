@@ -3,7 +3,6 @@ name = "surreal"
 version = "0.0.1"
 authors = ["swerdloj <swerdloj@andrews.edu>"]
 edition = "2018"
-build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -11,20 +10,25 @@ build = "build.rs"
 frame-time = []
 
 [dependencies]
-paste = "1.0.0"
 wgpu = "0.6.0"
+winit = { version = "0.23.0", features = ["web-sys"] }
 futures = "0.3.5"
 # TEMP: Update to official wgpu_glyph if they do something about StagingBelt
 # wgpu_glyph = "0.10.0"
 wgpu_glyph = { git = "https://github.com/rukai/wgpu_glyph/", branch = "update_wgpu" }
 glyph_brush = "0.7.0"
 bytemuck = "1.4.1"
-glsl-to-spirv = "0.1.7"
 cgmath = "0.17.0"
 image = "0.23.10"
 
 proc-macros = { path = "./proc_macros" }
 
-[dependencies.sdl2]
-version = "0.34.2"
-features = ["raw-window-handle"]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "=0.2.62"
+wasm-bindgen-futures = "=0.4.12"
+web-sys = "=0.3.39"
+
+log = "0.4"
+console_error_panic_hook = "0.1.6"
+console_log = "0.1.2"

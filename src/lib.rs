@@ -15,8 +15,43 @@ pub mod bounding_rect;
 pub mod timing;
 
 
+#[cfg(not(target_arch = "wasm32"))]
 pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
+#[cfg(target_arch = "wasm32")]
+pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 
+
+// Custom events used by Surreal. These events replace the need for
+// the overly complex, inflexible, and lacking winit events.
+// ( I just want to know the position of my mouse-down events :( )
+pub mod event {
+    pub enum MouseButton {
+        Left,
+        Right,
+        Middle,
+        Other(u8),
+    }
+
+    pub enum ButtonState {
+        Pressed,
+        Released,
+    }
+
+    pub enum ApplicationEvent {
+        MouseMotion {
+            position: (i32, i32),
+        },
+
+        MouseButton {
+            state: ButtonState,
+            button: MouseButton,
+            position: (i32, i32),
+        },
+
+        None,
+    }
+}
+    
 
 /// Re-exports everything needed by users for easy library import via `use surreal::prelude::*;`
 pub mod prelude {

@@ -11,7 +11,7 @@ pub use text::Text;
 pub trait Widget<Msg: crate::EmptyMessage> {
     fn id(&self) -> &'static str;
 
-    fn handle_event(&mut self, _event: &sdl2::event::Event, _state: std::cell::RefMut<crate::state::State>, _message_queue: &mut crate::MessageQueue<Msg>) -> crate::EventResponse {
+    fn handle_event(&mut self, _event: &crate::event::ApplicationEvent, _state: std::cell::RefMut<crate::state::State>, _message_queue: &mut crate::MessageQueue<Msg>) -> crate::EventResponse {
         crate::EventResponse::None
     }
 

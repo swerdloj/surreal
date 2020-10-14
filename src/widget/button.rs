@@ -4,8 +4,6 @@ use crate::view_element::*;
 
 use std::cell::RefMut;
 
-use sdl2::event::Event;
-
 use super::Widget;
 
 pub struct Button<Msg> {
@@ -100,16 +98,18 @@ impl<Msg: EmptyMessage> Widget<Msg> for Button<Msg> where Msg: 'static {
         }
     }
 
-    fn handle_event(&mut self, event: &Event, state: RefMut<State>, messages: &mut crate::MessageQueue<Msg>) -> crate::EventResponse {
+    fn handle_event(&mut self, event: &crate::event::ApplicationEvent, state: RefMut<State>, messages: &mut crate::MessageQueue<Msg>) -> crate::EventResponse {
+        use crate::event::*;
+        
         match event {
-            Event::MouseButtonDown { mouse_btn: sdl2::mouse::MouseButton::Left, x, y, .. } => {
+            ApplicationEvent::MouseButton { state: ButtonState::Pressed, button: MouseButton::Left, position: (x, y) } => {
                 if self.bounds.contains(*x, *y) {
                     self.mouse_down_in_bounds = true;
                     return crate::EventResponse::Consume;
                 }
             }
-
-            Event::MouseButtonUp { mouse_btn: sdl2::mouse::MouseButton::Left, x, y, .. } => {
+            
+            ApplicationEvent::MouseButton { state: ButtonState::Released, button: MouseButton::Left, position: (x, y) } => {
                 if self.mouse_down_in_bounds && self.bounds.contains(*x, *y) {
                     if let Some(on_click) = &mut self.on_click {
                         messages.push((on_click)(state));
@@ -120,6 +120,7 @@ impl<Msg: EmptyMessage> Widget<Msg> for Button<Msg> where Msg: 'static {
                 
                 self.mouse_down_in_bounds = false;
             }
+            
             _ => {}
         }
 
