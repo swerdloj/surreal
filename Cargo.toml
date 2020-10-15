@@ -7,7 +7,13 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
+default = ["embed-resources"]
+
+embed-resources = []
 frame-time = []
+
+
+
 
 [dependencies]
 wgpu = "0.6.0"
@@ -32,3 +38,8 @@ web-sys = "=0.3.39"
 log = "0.4"
 console_error_panic_hook = "0.1.6"
 console_log = "0.1.2"
+
+
+[target.'cfg(target_os = "android")'.dependencies]
+ndk-glue = "0.2.0"
+ndk = "0.2.0"

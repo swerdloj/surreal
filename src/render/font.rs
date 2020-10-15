@@ -143,16 +143,26 @@ macro_rules! include_fonts {
         let mut aliases = std::collections::HashSet::new();
 
         $(
-            let font_bytes = include_bytes!($font_path);
-            let font = wgpu_glyph::ab_glyph::FontArc::try_from_slice(font_bytes).unwrap();
-            
             let alias = stringify!($alias);
 
             if !aliases.insert(alias) {
                 panic!("Font alias `{}` already exists", alias);
             }
 
-            fonts.push((alias, font));
+            #[cfg(feature = "embed-resources")] {
+                let font_bytes = include_bytes!($font_path);
+                let font = wgpu_glyph::ab_glyph::FontArc::try_from_slice(font_bytes).unwrap();
+                fonts.push((alias, font));
+            }
+            
+            #[cfg(not(feature = "embed-resources"))] {
+                let mut file = std::fs::File::open($font_path).unwrap();
+                let mut font_bytes = Vec::new();
+                use std::io::Read;
+                file.read_to_end(&mut font_bytes).unwrap();
+                let font = wgpu_glyph::ab_glyph::FontArc::try_from_vec(font_bytes).unwrap();
+                fonts.push((alias, font));
+            }
         )+
 
         if !aliases.contains("default") {

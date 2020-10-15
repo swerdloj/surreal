@@ -295,23 +295,25 @@ impl Application {
                 }
             } // match event
 
-            view.propogate_event(&application_event, &mut message_queue);
-            
-            // TODO: Should this happen only once during RedrawRequested?
-            for message in message_queue.drain() {
-                // FIXME: I can't make `call_hook` part of `View`
-                crate::view::call_hook(view, &message);
-                // If view resized, render the view
-                should_resize |= view.propogate_message(&message);
+            if !application_event.is_none() {
+                should_render |= view.propogate_event(&application_event, &mut message_queue);
+                
+                // TODO: Should this happen only once during RedrawRequested?
+                for message in message_queue.drain() {
+                    // FIXME: I can't make `call_hook` part of `View`
+                    crate::view::call_hook(view, &message);
+                    // If view resized, render the view
+                    should_resize |= view.propogate_message(&message);
+                }
+                
+                // Only render if there is a reason to
+                if !this.is_minimized && (should_resize || should_render) {
+                    this.window_system.window.request_redraw();
+                }
+                
+                // FIXME: Is this usage correct with winit?
+                // this.timer.await_fps(this.target_fps, 5);
             }
-
-            // Only render if there is a reason to
-            if !this.is_minimized && (should_resize || should_render) {
-                this.window_system.window.request_redraw();
-            }
-
-            // FIXME: Is this usage correct with winit?
-            this.timer.await_fps(this.target_fps, 5);
         });        
     }
 

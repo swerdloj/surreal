@@ -2,6 +2,7 @@ mod button;
 mod circle_button;
 mod text;
 mod image;
+mod scroll_bar;
 
 pub use self::image::{Image, IncludedImages};
 pub use circle_button::CircleButton;

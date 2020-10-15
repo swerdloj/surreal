@@ -135,13 +135,15 @@ fn main() {
         let _test2 = GetWidget!(Button(reset) from view);
     });
 
+    // Resources are embeded by default. They can be loaded from disk instead
+    // if the feature "embed-resources" is disabled
     let fonts = include_fonts! {
-        default => "../../res/JetBrainsMono/JetBrainsMono-Medium.ttf",
+        default => "../res/JetBrainsMono/JetBrainsMono-Medium.ttf",
     };
 
     let images = include_images! {
-        public_domain => "../../res/images/public_domain.png",
-        plus => "../../res/images/plus_thing.png",
+        public_domain => "../res/images/public_domain.png",
+        plus => "../res/images/plus_thing.png",
     };
 
     // TODO: This + pass to app

@@ -77,8 +77,11 @@ pub trait View<Msg: crate::EmptyMessage> {
         }
     }
 
-    fn propogate_event(&mut self, event: &crate::event::ApplicationEvent, message_queue: &mut crate::MessageQueue<Msg>) {
+    // Returns `true` if redraw was requested
+    fn propogate_event(&mut self, event: &crate::event::ApplicationEvent, message_queue: &mut crate::MessageQueue<Msg>) -> bool {
         use crate::ViewElement::*;
+
+        let mut redraw = false;
 
         let state = self.state();
         for child in self.children() {
@@ -88,10 +91,18 @@ pub trait View<Msg: crate::EmptyMessage> {
                 }
 
                 Widget(widget) => {
-                    widget.handle_event(event, state.clone().borrow_mut(), message_queue);
+                    let response = widget.handle_event(event, state.clone().borrow_mut(), message_queue);
+
+                    match response {
+                        crate::EventResponse::Consume => break,
+                        crate::EventResponse::Redraw => redraw = true,
+                        crate::EventResponse::None => {}
+                    }
                 }
             }
         }
+
+        redraw
     }
 
     // Returns true if the view should resize

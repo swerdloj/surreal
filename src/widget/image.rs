@@ -127,16 +127,25 @@ macro_rules! include_images {
         let mut aliases = std::collections::HashSet::new();
 
         $(
-            let image_bytes = include_bytes!($image_path);
-
-            let image_resource = image::load_from_memory(image_bytes).unwrap();
             let alias = stringify!($alias);
 
             if !aliases.insert(alias) {
                 panic!("An image resource with alias `{}` already exists", alias);
             }
 
-            images.push((alias, image_resource));
+            // embed image in exe
+            #[cfg(feature = "embed-resources")] {
+                let image_bytes = include_bytes!($image_path);
+                
+                let image_resource = image::load_from_memory(image_bytes).unwrap();
+                images.push((alias, image_resource));
+            }
+
+            // load image from disk
+            #[cfg(not(feature = "embed-resources"))] {
+                let image_resource = image::open($image_path).unwrap();
+                images.push((alias, image_resource));
+            }
         )+
 
         images

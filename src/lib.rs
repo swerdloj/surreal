@@ -19,38 +19,6 @@ pub mod timing;
 pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
 #[cfg(target_arch = "wasm32")]
 pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
-
-
-// Custom events used by Surreal. These events replace the need for
-// the overly complex, inflexible, and lacking winit events.
-// ( I just want to know the position of my mouse-down events :( )
-pub mod event {
-    pub enum MouseButton {
-        Left,
-        Right,
-        Middle,
-        Other(u8),
-    }
-
-    pub enum ButtonState {
-        Pressed,
-        Released,
-    }
-
-    pub enum ApplicationEvent {
-        MouseMotion {
-            position: (i32, i32),
-        },
-
-        MouseButton {
-            state: ButtonState,
-            button: MouseButton,
-            position: (i32, i32),
-        },
-
-        None,
-    }
-}
     
 
 /// Re-exports everything needed by users for easy library import via `use surreal::prelude::*;`
@@ -91,6 +59,46 @@ pub mod surreal_macros {
         include_images,
     };
 }
+
+
+// Custom events used by Surreal. These events replace the need for
+// the overly complex, inflexible, and lacking winit events.
+// TODO: Consider just wrapping winit events and include mouse info
+pub mod event {
+    pub enum MouseButton {
+        Left,
+        Right,
+        Middle,
+        Other(u8),
+    }
+
+    pub enum ButtonState {
+        Pressed,
+        Released,
+    }
+
+    pub enum ApplicationEvent {
+        MouseMotion {
+            position: (i32, i32),
+        },
+
+        MouseButton {
+            state: ButtonState,
+            button: MouseButton,
+            position: (i32, i32),
+        },
+
+        None,
+    }
+
+    impl ApplicationEvent {
+        pub fn is_none(&self) -> bool {
+            if let ApplicationEvent::None = self {true} else {false}
+        }
+    }
+}
+
+
 
 /// Types and derive macro required when using `#derive(IntoViewElement)`
 pub mod view_element {
@@ -136,6 +144,8 @@ pub enum EventResponse {
     /// For example, a button will `Consume` left click events, 
     /// preventing other widgets from seeing that event.
     Consume,
+    /// Signal the renderer to redraw the view. Does not consume the event.
+    Redraw,
     /// No response given. The event will propogate to other elements.
     None,
 }
@@ -334,7 +344,7 @@ fn test() {
 
     let condition = true;
 
-    let view: Stack<()> = TestStack! {
+    let view = TestStack! {
         // Base case
         Button::new("1"),
 
