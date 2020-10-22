@@ -7,7 +7,8 @@ enum Message {
     None,
 }
 
-fn main() {
+#[allow(unused)]
+pub fn main() {
     // TODO: Consider giving users the option of cloning `Shared<T>`s like 
     // gtk suggests (see `clone!`): https://gtk-rs.org/docs-src/tutorial/closures
 
@@ -125,7 +126,7 @@ fn main() {
         .alignment(Alignment::Center),
     };
 
-    // NOTE: Future: Define view via DSL. Hook can then be used to implement the view
+    // NOTE: Future: Can define view via DSL. Hook can then be used to implement the view
     view.set_hook(|view, _message| {
         // Two ways to get widgets
 

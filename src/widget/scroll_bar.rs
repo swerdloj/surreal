@@ -3,7 +3,8 @@ use crate::bounding_rect::BoundingRect;
 
 pub struct ScrollBar<Msg> {
     id: &'static str,
-    bounds: BoundingRect,
+    container_bounds: BoundingRect,
+    slider_bounds: BoundingRect,
     orientation: crate::Orientation,
     // TODO: Pass in scroll information here
     on_scroll: Option<Box<dyn FnMut(std::cell::RefMut<State>) -> Msg>>,
@@ -26,7 +27,8 @@ impl<Msg> ScrollBar<Msg> {
     pub fn new(id: &'static str) -> Self {
         Self {
             id,
-            bounds: BoundingRect::new(),
+            container_bounds: BoundingRect::new(),
+            slider_bounds: BoundingRect::new(),
             orientation: crate::Orientation::Vertical,
             on_scroll: None,
             slider_roundness: None,
@@ -50,6 +52,19 @@ impl<Msg> ScrollBar<Msg> {
         self.on_scroll = Some(Box::new(on_scroll));
         self
     }
+
+    fn scroll(&mut self, dx: i32, dy: i32) {
+        match self.orientation {
+            // use x
+            crate::Orientation::Vertical => {
+                todo!("scroll within container bounds")
+            }
+            // use y
+            crate::Orientation::Horizontal => {
+                todo!("scroll within container bounds")
+            }
+        }
+    }
 }
 
 impl<Msg: crate::EmptyMessage> super::Widget<Msg> for ScrollBar<Msg> {
@@ -59,17 +74,34 @@ impl<Msg: crate::EmptyMessage> super::Widget<Msg> for ScrollBar<Msg> {
 
     // TODO: Listen for scroll wheel
     fn handle_event(&mut self, event: &crate::event::ApplicationEvent, _state: std::cell::RefMut<crate::state::State>, _message_queue: &mut crate::MessageQueue<Msg>) -> crate::EventResponse {
+        use crate::event::*;
+        
         match event {
-            crate::event::ApplicationEvent::MouseMotion { position } => {
+            ApplicationEvent::MouseMotion { relative_change: (dx, dy), .. } => {
                 if self.is_held_down {
-                    todo!()
+                    self.scroll(*dx, *dy);
                 }
 
                 crate::EventResponse::None
             }
 
-            crate::event::ApplicationEvent::MouseButton { state, button, position } => {
-                todo!()
+            ApplicationEvent::MouseButton { state: ButtonState::Pressed, button: MouseButton::Left, position: (x, y) } => {
+                // TODO: Differentiate slider & container bounds.
+                // Clicking on container should scroll to that point automatically.
+                if self.slider_bounds.contains(*x, *y) {
+                    self.is_held_down = true;
+                    return crate::EventResponse::Consume;
+                } else if self.container_bounds.contains(*x, *y) {
+                    todo!("scroll to that point")
+                }
+
+                crate::EventResponse::None
+            }
+
+            ApplicationEvent::MouseButton { state: ButtonState::Released, button: MouseButton::Left, position: (x, y) } => {
+                self.is_held_down = false;
+
+                crate::EventResponse::None
             }
 
             _ => {

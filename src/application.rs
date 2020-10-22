@@ -230,12 +230,43 @@ impl Application {
                     }
                 }
 
+                // Touch -> Mouse
+                // TODO: Flesh this out
+                Event::WindowEvent { event: WindowEvent::Touch(touch), .. } => {
+                    application_event = match touch.phase {
+                        winit::event::TouchPhase::Started => crate::event::ApplicationEvent::MouseButton {
+                            state: crate::event::ButtonState::Pressed,
+                            button: crate::event::MouseButton::Left,
+                            position: touch.location.into(),
+                        },
+                        
+                        winit::event::TouchPhase::Ended => crate::event::ApplicationEvent::MouseButton {
+                            state: crate::event::ButtonState::Released,
+                            button: crate::event::MouseButton::Left,
+                            position: touch.location.into(),
+                        },
+                        
+                        winit::event::TouchPhase::Moved => {
+                            let position = touch.location.into();
+                            let event = crate::event::ApplicationEvent::MouseMotion {
+                                position,
+                                relative_change: (position.0 - mouse_position.0, position.1 - mouse_position.1),
+                            };
+                            mouse_position = position;
+                            event
+                        }, 
+                        
+                        winit::event::TouchPhase::Cancelled => todo!("touch-cancel"), // TODO: what does this mean?
+                    };
+                }
+
                 // Mouse motion
                 Event::WindowEvent { event: WindowEvent::CursorMoved { position, .. }, .. } => {
                     let physical = position.to_logical(this.window_system.window.scale_factor());
 
                     application_event = crate::event::ApplicationEvent::MouseMotion {
                         position: (physical.x, physical.y),
+                        relative_change: (physical.x - mouse_position.0, physical.y - mouse_position.1),
                     };
 
                     mouse_position = (physical.x, physical.y);

@@ -15,11 +15,16 @@ pub mod bounding_rect;
 pub mod timing;
 
 
-#[cfg(not(target_arch = "wasm32"))]
+// Desktop format
+#[cfg(all(not(target_arch = "wasm32"), any(target_os = "linux", target_os = "windows", target_os = "macos")))]
 pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
+// Web format
 #[cfg(target_arch = "wasm32")]
 pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
-    
+// Android format
+#[cfg(target_os = "android")]
+pub const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8UnormSrgb;
+
 
 /// Re-exports everything needed by users for easy library import via `use surreal::prelude::*;`
 pub mod prelude {
@@ -80,6 +85,7 @@ pub mod event {
     pub enum ApplicationEvent {
         MouseMotion {
             position: (i32, i32),
+            relative_change: (i32, i32),
         },
 
         MouseButton {

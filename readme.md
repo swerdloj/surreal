@@ -80,6 +80,36 @@ fn main() {
 }
 ```
 
+### Building
+Surreal currently works with the following platforms:
+- Windows
+- Linux
+- Mac (untested)
+- Android (tested, but unstable)
+- iOS (untested)
+
+**Android Builds**  
+To save you a great deal of trouble, here is how to build `wgpu-rs` + `winit` apps for Android:
+
+1. Install the [sdkmanager](https://developer.android.com/studio/command-line/sdkmanager) tool. See [this](https://stackoverflow.com/a/60598900) for help
+2. Install the build tools and platform tools using `sdkmanager`
+3. Install a compatible SDK and NDK version using `sdkmanager`
+4. Install `cargo-apk` via `cargo install cargo-apk`
+5. Follow the [android-ndk-rs](https://github.com/rust-windowing/android-ndk-rs) guide to configure your application's Android build
+6. Build the app using `cargo apk build (your build flags here)`
+7. You may get various warnings. Check `your_app/target/debug/apk` for `your_app.apk` before taking any action
+8. Sign your app using the following JDK commands:
+    - ensure your JDK path is exported (mine is C:\Program Files\Java\jdk-10\bin)
+    - `keytool -genkey -v -keystore my-release-key.keystore -alias alias_name -keyalg RSA -keysize 2048 -validity 10000`
+    - `jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore my-release-key.keystore your_app.apk alias_name`  
+      
+    [You can also look into apksigner.jar](https://developer.android.com/studio/publish/app-signing.html#signing-manually) located in `your_android_path/build-tools/your_version/lib`
+
+9. Connect your developer-enabled device and run `adb install "path/to/your_app.apk"`
+10. View console output with `adb logcat RustStdoutStderr:D *:S` (will also output panics, etc.)
+
+ 
+
 ## Customizability
 Surreal offers two means of customizing the appearance of an application:
 ### Global Themes
@@ -163,7 +193,7 @@ view.set_hook(|this, message| {
 });
 ```
 
-## Control Flow
+## Control Flow (TODO: Update this)
 - **Initialization**:
   - View::_init -> View::init + Widget::init -> View::layout
 - **Main Loop**:
