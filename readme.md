@@ -95,12 +95,13 @@ To save you a great deal of trouble, here is how to build `wgpu-rs` + `winit` ap
 2. Install the build tools and platform tools using `sdkmanager`
 3. Install a compatible SDK and NDK version using `sdkmanager`
 4. Install `cargo-apk` via `cargo install cargo-apk`
-5. Follow the [android-ndk-rs](https://github.com/rust-windowing/android-ndk-rs) guide to configure your application's Android build
+5. Follow the [android-ndk-rs](https://github.com/rust-windowing/android-ndk-rs) guide to configure your application's Android build (also see `./examples/android.rs`)
 6. Build the app using `cargo apk build (your build flags here)`
 7. You may get various warnings. Check `your_app/target/debug/apk` for `your_app.apk` before taking any action
 8. Sign your app using the following JDK commands:
     - ensure your JDK path is exported (mine is C:\Program Files\Java\jdk-10\bin)
     - `keytool -genkey -v -keystore my-release-key.keystore -alias alias_name -keyalg RSA -keysize 2048 -validity 10000`
+      - This command does not need to be used each time
     - `jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore my-release-key.keystore your_app.apk alias_name`  
       
     [You can also look into apksigner.jar](https://developer.android.com/studio/publish/app-signing.html#signing-manually) located in `your_android_path/build-tools/your_version/lib`

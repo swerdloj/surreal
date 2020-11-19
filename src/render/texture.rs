@@ -170,6 +170,9 @@ pub struct Texture {
 
 impl Texture {
     pub fn new(image_resource: image::DynamicImage, bind_group_layout: &BindGroupLayout, device: &Device, queue: &Queue) -> Self {
+        // TODO: Convert RGBA8 to floating point value for filtering
+        // FIXME: Look into using `.blur()` when downscaling
+        //        Account for image size & target size
         let rgba_image = image_resource.as_rgba8().unwrap();
 
         let (width, height) = rgba_image.dimensions();

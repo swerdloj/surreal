@@ -98,7 +98,7 @@ impl<Msg: EmptyMessage> super::View<Msg> for Stack<Msg> where Msg: 'static{
                     
                     if alignment.is_centered() {
                         if self.orientation.is_vertical() {
-                            view.translate((constraints.0 / 2 - child_width / 2) as i32, current_y as i32);
+                            view.translate((constraints.0 / 2) as i32 - (child_width / 2) as i32, current_y as i32);
                         }
                     } else {   
                         view.translate(current_x as i32, current_y as i32);
@@ -112,7 +112,7 @@ impl<Msg: EmptyMessage> super::View<Msg> for Stack<Msg> where Msg: 'static{
 
                     if alignment.is_centered() {
                         if self.orientation.is_vertical() {
-                            widget.place((constraints.0 / 2 - child_width / 2) as i32, current_y as i32);
+                            widget.place((constraints.0 / 2) as i32 - (child_width / 2) as i32, current_y as i32);
                         }
                     } else {   
                         widget.place(current_x as i32, current_y as i32);

@@ -4,6 +4,7 @@ use surreal::prelude::*;
 #[empty(None)]
 enum Message {
     UpdateCounter,
+    UpdateAmount,
     None,
 }
 
@@ -15,12 +16,13 @@ pub fn main() {
     let mut view = Stateful! {
         @State {
             counter: i32 = 0,
+            amount: u32 = 0,
         },
 
         VStack! {
-            Image::new("image")
-                .resource("public_domain")
-                .fit_to_width(150),
+            // Image::new("image")
+            //     .resource("public_domain")
+            //     .fit_to_width(150),
 
             Button::new("text_button")
                 .text(Text::new("") // <-- Nested id is not needed
@@ -33,6 +35,26 @@ pub fn main() {
                 .text("This is a text widget with text inside")
                 .scale(30.0),
 
+            ScrollBar::new("scroll_test", 200, 50)
+                .on_scroll(|percentage, mut state| {                    
+                    // 0 <-> 50
+                    @amount = (percentage * 50.0) as u32;
+                    Message::UpdateAmount
+                })
+                .width(15)
+                .container_color(Color::LIGHT_GRAY)
+                .orientation(Orientation::Horizontal),
+
+            Text::new("amount_text")
+                .text("0")
+                .scale(25.0)
+                .message_handler(|this, message, mut state| {
+                    if let Message::UpdateAmount = message {
+                        this.set_text(&format!("{}", @amount));
+                    } 
+                })
+                .color(Color::WHITE),
+
             HStack! {
                 // Contents are automatically scaled to fit within the CircleButton
                 CircleButton::new("with_image")
@@ -42,7 +64,7 @@ pub fn main() {
                     .radius(40)
                     .color(Color::LIGHT_GRAY)
                     .on_click(|mut state| {
-                        @counter += 1;
+                        @counter += @amount as i32;
                         Message::UpdateCounter
                     }),
 
@@ -54,7 +76,7 @@ pub fn main() {
                     .radius(40)
                     .color(Color::LIGHT_GRAY)
                     .on_click(|mut state| {
-                        @counter -= 1;
+                        @counter -= @amount as i32;
                         Message::UpdateCounter
                     }),
             },
@@ -120,8 +142,6 @@ pub fn main() {
             },
 
             Button::new("test7"),
-
-            Button::new("test8"),
         }
         .alignment(Alignment::Center),
     };
@@ -147,15 +167,15 @@ pub fn main() {
         plus => "../res/images/plus_thing.png",
     };
 
-    // TODO: This + pass to app
-    // let theme = include_theme!("../../res/themes/default.theme");
-
+    // TODO: Load & pass themes
     let mut app = Application::new(ApplicationSettings {
         title: "Surreal Test",
+        // prevents locking window min size to main-view's size
+        allow_scrollbars: true, 
         fonts,
         images,
         ..Default::default()
     });
-
+    
     app.run(&mut view);
 }

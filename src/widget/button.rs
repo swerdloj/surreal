@@ -12,7 +12,7 @@ pub struct Button<Msg> {
     text: Option<super::Text<Msg>>,
     on_click: Option<Box<dyn FnMut(RefMut<State>) -> Msg>>,
     color: Option<crate::Color>,
-    roundness: Option<f32>,
+    roundness: f32,
 
     // Register click only when mouse-down *and* mouse-up occur within bounds
     mouse_down_in_bounds: bool,
@@ -34,7 +34,8 @@ impl<Msg> Button<Msg> {
             text: None,
             on_click: None,
             color: None,
-            roundness: None,
+            // Negative -> unset
+            roundness: -1.0,
             mouse_down_in_bounds: false,
             should_resize: false,
         }
@@ -60,7 +61,7 @@ impl<Msg> Button<Msg> {
             panic!("Roundness must be between 0 and 100 (percent). `{}` got `{}`", self.id, roundness);
         }
 
-        self.roundness = Some(roundness);
+        self.roundness = roundness;
         self
     }
 }
@@ -84,8 +85,8 @@ impl<Msg: EmptyMessage> Widget<Msg> for Button<Msg> where Msg: 'static {
     }
 
     fn init(&mut self, renderer: &mut crate::render::Renderer, theme: &crate::style::Theme) {
-        if self.roundness.is_none() {
-            self.roundness = Some(theme.widget_styles.buttons.roundness);
+        if self.roundness < 0.0 {
+            self.roundness = theme.widget_styles.buttons.roundness;
         }
 
         if self.color.is_none() {
@@ -151,22 +152,14 @@ impl<Msg: EmptyMessage> Widget<Msg> for Button<Msg> where Msg: 'static {
 
     fn render(&self, renderer: &mut crate::render::ContextualRenderer, theme: &crate::style::Theme) {        
         // TODO: Renderer can create draw commands using just the bounding_rect + style
-        if *self.roundness.as_ref().unwrap() == 0.0 {
-            renderer.draw(crate::render::DrawCommand::Rect {
-                top_left: self.bounds.top_left(),
-                width: self.bounds.width,
-                height: self.bounds.height,
-                color: self.color.unwrap(),
-            });
-        } else {
-            renderer.draw(crate::render::DrawCommand::RoundedRect {
-                top_left: self.bounds.top_left(),
-                width: self.bounds.width,
-                height: self.bounds.height,
-                roundness_percent: self.roundness.unwrap(),
-                color: self.color.unwrap(),
-            });
-        }
+
+        renderer.draw(crate::render::DrawCommand::RoundedRect {
+            top_left: self.bounds.top_left(),
+            width: self.bounds.width,
+            height: self.bounds.height,
+            roundness_percent: self.roundness,
+            color: self.color.unwrap(),
+        });
 
         if let Some(text) = &self.text {
             text.render(renderer, theme);

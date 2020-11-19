@@ -37,15 +37,17 @@ pub trait View<Msg: crate::EmptyMessage> {
     // FIXME: Is there any way to prevent this from being replaced?
     // FIXME: The naming of this and `init` is dangerous
     /// The default init function for views. Do not implement this; use `View::init()` instead
-    fn _init(&mut self, renderer: &mut crate::render::Renderer, theme: &crate::style::Theme) {
+    fn _init(&mut self, renderer: &mut crate::render::Renderer, theme: &crate::style::Theme, initial_init: bool) {
         self.init(renderer, theme);
         for child in self.children() {
             match child {
                 crate::ViewElement::Widget(widget) => {
-                    widget.init(renderer, theme);
+                    if widget.should_reinit_before_layout() || initial_init {
+                        widget.init(renderer, theme);
+                    }
                 }
                 crate::ViewElement::View(view) => {
-                    view._init(renderer, theme);
+                    view._init(renderer, theme, initial_init);
                 }
             }
         }

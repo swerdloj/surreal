@@ -35,6 +35,7 @@ pub struct ApplicationSettings {
     pub fonts: crate::render::font::IncludedFonts,
     pub fit_window_to_view: bool,
     pub resizable: bool,
+    pub allow_scrollbars: bool,
     pub use_vsync: bool,
     pub target_fps: u64,
 }
@@ -51,6 +52,7 @@ impl Default for ApplicationSettings {
             fonts: Vec::new(),
             fit_window_to_view: true,
             resizable: true,
+            allow_scrollbars: false,
             use_vsync: false,
             target_fps: 60,
         }
@@ -70,6 +72,7 @@ pub struct Application {
 
     fit_window_to_view: bool,
     is_resizable: bool,
+    allows_scrollbars: bool,
     is_minimized: bool,
 }
 
@@ -111,6 +114,7 @@ impl Application {
 
             fit_window_to_view: settings.fit_window_to_view,
             is_resizable: settings.resizable,
+            allows_scrollbars: settings.allow_scrollbars,
             is_minimized: false,
         }
     }
@@ -157,7 +161,7 @@ impl Application {
         
         let mut message_queue = crate::MessageQueue::new();
 
-        view._init(&mut this.renderer, &this.global_theme);
+        view._init(&mut this.renderer, &this.global_theme, true);
         view.layout(&mut this.renderer, &this.global_theme, (this.gpu.sc_desc.width, this.gpu.sc_desc.height), true);
         
         {
@@ -171,7 +175,7 @@ impl Application {
             }
 
             // FIXME: This needs to be updated when views become dynamic
-            if this.is_resizable {
+            if this.is_resizable && !this.allows_scrollbars {
                 this.window_system.window.set_min_inner_size(Some(winit::dpi::LogicalSize::new(width, height)));
             }
         }
@@ -216,7 +220,7 @@ impl Application {
                 // Window resize
                 Event::WindowEvent { event: WindowEvent::Resized(size), .. } => {
                     let (width, height) = (size.width, size.height);
-                    println!("Window resized to {}x{}", &width, &height);
+                    // println!("Window resized to {}x{}", &width, &height);
 
                     // FIXME: winit does not have min/max events
                     if width == 0 {
@@ -302,7 +306,7 @@ impl Application {
                     let start = std::time::Instant::now();
         
                     if should_resize {
-                        view._init(&mut this.renderer, &this.global_theme);
+                        view._init(&mut this.renderer, &this.global_theme, false);
                         view.layout(&mut this.renderer, &this.global_theme, (this.gpu.sc_desc.width, this.gpu.sc_desc.height), true);
                         // render the updated view
                         should_render = true;

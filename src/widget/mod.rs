@@ -8,6 +8,7 @@ pub use self::image::{Image, IncludedImages};
 pub use circle_button::CircleButton;
 pub use button::Button;
 pub use text::Text;
+pub use scroll_bar::ScrollBar;
 
 pub trait Widget<Msg: crate::EmptyMessage> {
     fn id(&self) -> &'static str;
@@ -31,6 +32,13 @@ pub trait Widget<Msg: crate::EmptyMessage> {
     }
 
     fn should_resize(&mut self) -> &mut bool;
+
+    /// Return true here if the widget's `init` function should be called
+    /// every time before layout. Otherwise, this function will only ever
+    /// be called once for the original view initialization.
+    fn should_reinit_before_layout(&self) -> bool {
+        false
+    }
 
     fn init(&mut self, renderer: &mut crate::render::Renderer, theme: &crate::style::Theme);
 

@@ -128,7 +128,11 @@ impl<Msg> Text<Msg> {
     }
 }
 
-impl<Msg: EmptyMessage> Widget<Msg> for Text<Msg> where Msg: 'static{
+impl<Msg: EmptyMessage> Widget<Msg> for Text<Msg> where Msg: 'static {
+    fn should_reinit_before_layout(&self) -> bool {
+        true
+    }
+
     fn id(&self) -> &'static str {
         self.id
     }

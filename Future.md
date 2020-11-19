@@ -1,3 +1,21 @@
+# UPDATED paper goals
+- Research paper
+- Focus on declarative style API
+  - Argue for this rather than the library itself
+  - Use library as a case study
+- Compare to existing solutions (like GTK & QT) and demonstrate advantages of declarative style over imperative
+- Explain how I reached my conclusions
+- Also point out downsides of declarative approach
+- Relate to languages beyond Rust
+- Argue in favor of using existing solutions, but declarative wrappers
+- Look at Surreal as an API rather than a library
+
+
+
+
+
+
+
 # Extended Goals
 1. Procedural Macro for View Creation (custom syntax)
 2. QML-style markup language
