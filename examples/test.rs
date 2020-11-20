@@ -5,6 +5,8 @@ use surreal::prelude::*;
 enum Message {
     UpdateCounter,
     UpdateAmount,
+    AppendButton,
+    DeleteAppended,
     None,
 }
 
@@ -16,7 +18,7 @@ pub fn main() {
     let mut view = Stateful! {
         @State {
             counter: i32 = 0,
-            amount: u32 = 0,
+            amount: u32 = 1,
         },
 
         VStack! {
@@ -37,8 +39,8 @@ pub fn main() {
 
             ScrollBar::new("scroll_test", 200, 50)
                 .on_scroll(|percentage, mut state| {                    
-                    // 0 <-> 50
-                    @amount = (percentage * 50.0) as u32;
+                    // 1 <-> 50
+                    @amount = 1 + (percentage * 49.0) as u32;
                     Message::UpdateAmount
                 })
                 .width(15)
@@ -46,7 +48,7 @@ pub fn main() {
                 .orientation(Orientation::Horizontal),
 
             Text::new("amount_text")
-                .text("0")
+                .text(&@amount.to_string())
                 .scale(25.0)
                 .message_handler(|this, message, mut state| {
                     if let Message::UpdateAmount = message {
@@ -111,7 +113,14 @@ pub fn main() {
                 .roundness(0.0),
 
             HStack! {
-                Button::new("test3"),
+                Button::new("delete")
+                    .text(Text::new("")
+                        .text("Delete")
+                        .color(Color::DARK_GRAY)
+                    )
+                    .on_click(|_| {
+                        Message::DeleteAppended
+                    }),
                 
                 Button::new("test4")
                     .color(Color::new(0.2, 0.3, 0.8, 1.0))
@@ -125,8 +134,15 @@ pub fn main() {
                         Message::None
                     }),
 
-                Button::new("test5")
-                    .color(Color::LIGHT_GRAY),
+                Button::new("append")
+                    .color(Color::LIGHT_GRAY)
+                    .text(Text::new("")
+                        .text("Append")
+                        .color(Color::BLACK)
+                    )
+                    .on_click(|_| {
+                        Message::AppendButton
+                    }),
 
                 Button::new("reset")
                     .color(Color::DARK_GRAY)
@@ -147,13 +163,38 @@ pub fn main() {
     };
 
     // NOTE: Future: Can define view via DSL. Hook can then be used to implement the view
-    view.set_hook(|view, _message| {
+    view.set_hook(|view, message| {
         // Two ways to get widgets
 
-        let test = GetWidget!(view.more_text as Text);
-        test.set_text("Hook");
+        GetWidget!(view.more_text as Text)
+        .set_text("Hook");
 
-        let _test2 = GetWidget!(Button(reset) from view);
+        GetWidget!(Button(reset) from view);
+
+        match message {
+            Message::AppendButton => {
+                println!("Appending a button");
+                view.append(
+                Button::new("_appended")
+                        .text(Text::new("")
+                            .text("Appended")
+                            .scale(25.0)
+                        )
+                        .color(Color::new(0.5, 0.2, 0.2, 1.0))
+                        .into_element()
+                )
+            }
+
+            Message::DeleteAppended => {
+                if view.delete("_appended").is_ok() {
+                    println!("Deleting a button");
+                } else {
+                    println!("No appended buttons to delete")
+                }
+            }
+
+            _ => {}
+        }
     });
 
     // Resources are embeded by default. They can be loaded from disk instead

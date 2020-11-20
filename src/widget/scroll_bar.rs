@@ -249,7 +249,7 @@ impl<Msg: crate::EmptyMessage> super::Widget<Msg> for ScrollBar<Msg> {
         }
     }
 
-    fn render(&self, renderer: &mut crate::render::ContextualRenderer, theme: &crate::style::Theme) {
+    fn render(&self, renderer: &mut crate::render::ContextualRenderer, _theme: &crate::style::Theme) {
         // Container
         if self.has_container {
             renderer.draw(crate::render::DrawCommand::RoundedRect {

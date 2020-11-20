@@ -36,8 +36,10 @@ pub trait Widget<Msg: crate::EmptyMessage> {
     /// Return true here if the widget's `init` function should be called
     /// every time before layout. Otherwise, this function will only ever
     /// be called once for the original view initialization.
+    // TODO: This should default to `false`, but that breaks View inserts
+    //       Appended items always need to init after being appended regardless of this value
     fn should_reinit_before_layout(&self) -> bool {
-        false
+        true
     }
 
     fn init(&mut self, renderer: &mut crate::render::Renderer, theme: &crate::style::Theme);

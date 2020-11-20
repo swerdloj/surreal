@@ -9,6 +9,14 @@ use winit::{
 
 use wgpu::*;
 
+// Ignore Results (remove `unused Result` warning)
+trait Ignore {
+    fn ignore(self);
+}
+impl<T, U> Ignore for Result<T, U> {
+    fn ignore(self) {}
+}
+
 struct WindowSystem {
     event_loop: Option<EventLoop<()>>,
     window: winit::window::Window,
@@ -194,6 +202,10 @@ impl Application {
         let mut should_render = true;
         let mut should_resize = false;
 
+        // Scroll bars
+        let mut has_hbar = false;
+        let mut has_vbar = false;
+
         let mut mouse_position: (i32, i32) = (0, 0);
 
         let event_loop = this.window_system.event_loop.take().unwrap();
@@ -231,6 +243,34 @@ impl Application {
                         this.resize_swap_chain(width, height);
                         // Centered views need this
                         should_resize = true;
+                    }
+
+                    // Add/Remove scrollbars
+                    // TODO: Bars need fixed positions and should span the window
+                    if this.allows_scrollbars {
+                        use crate::IntoViewElement;
+                        // TODO: need a way to save `render_width/height()` results so
+                        //       the calculations don't need to be repeated constantly
+                        //       (although the size can change periodically)
+                        if !has_hbar && width != 0 && width < view.render_width() {
+                            has_hbar = true;
+                            // TODO: add horizontal scroll bar
+                            view.append(crate::widget::ScrollBar::new("__hbar", 200, 50)
+                                .orientation(crate::Orientation::Horizontal).into_element())
+                        } else if has_hbar && width >= view.render_width() {
+                            has_hbar = false;
+                            view.delete("__hbar").ignore();
+                        }
+
+                        if !has_vbar && height != 0 && height < view.render_height() {
+                            has_vbar = true;
+                            // TODO: add vertical scroll bar
+                            view.append(crate::widget::ScrollBar::new("__vbar", 50, 10)
+                                .orientation(crate::Orientation::Vertical).into_element())
+                        } else if has_vbar && height >= view.render_height() {
+                            has_vbar = false;
+                            view.delete("__vbar").ignore();
+                        }
                     }
                 }
 

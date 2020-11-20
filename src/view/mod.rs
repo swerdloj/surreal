@@ -25,6 +25,67 @@ pub trait View<Msg: crate::EmptyMessage> {
     //     &mut self.map().children
     // }
 
+    fn delete(&mut self, id: &str) -> Result<(), String> {
+        let length = self.children().len();
+        let mut index = 0;
+
+        for item in self.children() {
+            match item {
+                crate::ViewElement::Widget(widget) => {
+                    if widget.id() == id {
+                        break;
+                    }
+                    index += 1;
+                }
+                crate::ViewElement::View(view) => {
+                    //TODO: todo!("`delete` handle View")
+                    index += 1;
+                    continue;
+                }
+            }
+
+            if index == length { return Err(format!("Item `{}` was not found", id)) }
+        }
+
+        self.children().remove(index);
+        Ok(())
+    }
+
+    /// Appends a `ViewElement` to the end of the view
+    // TODO: Need to signal re-layout
+    fn append(&mut self, item: crate::ViewElement<Msg>) {
+        // TODO: Ensure id is unique
+        // TODO: Add type-check info whenever that is added
+        self.children().push(item);
+    }
+
+    /// Inserts a `ViewElement` after the specified item (by id).
+    // TODO: Need to signal re-layout
+    fn insert_after(&mut self, after_id: &str, item: crate::ViewElement<Msg>) -> Result<(), String> {
+        let length = self.children().len();
+        let mut index = 0;
+
+        for child in self.children() {
+            match child {
+                crate::ViewElement::Widget(widget) => {
+                    index += 1;
+                    if widget.id() == after_id {
+                        break;
+                    }
+                }
+                crate::ViewElement::View(view) => {
+                    todo!("`insert_after` handle View")
+                }
+            }
+
+            // Not found
+            if index == length { return Err(format!("Item `{}` was not found", after_id)) }
+        }
+
+        self.children().insert(index, item);
+        Ok(())
+    }
+
     fn children(&mut self) -> &mut Vec<crate::ViewElement<Msg>>;
 
     fn translate(&mut self, dx: i32, dy: i32);
