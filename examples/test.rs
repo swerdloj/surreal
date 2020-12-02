@@ -175,7 +175,7 @@ pub fn main() {
             Message::AppendButton => {
                 println!("Appending a button");
                 view.append(
-                Button::new("_appended")
+                    Button::new("_appended")
                         .text(Text::new("")
                             .text("Appended")
                             .scale(25.0)
@@ -211,8 +211,9 @@ pub fn main() {
     // TODO: Load & pass themes
     let mut app = Application::new(ApplicationSettings {
         title: "Surreal Test",
-        // prevents locking window min size to main-view's size
-        allow_scrollbars: true, 
+        // prevents locking window min size to main-view's size 
+        // TODO: see `application.rs` scrollbar todo
+        // allow_scrollbars: true,
         fonts,
         images,
         ..Default::default()

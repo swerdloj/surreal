@@ -1,13 +1,38 @@
-# UPDATED paper goals
+# Paper Goals
 - Research paper
+  - Possible Titles:
+    - "Declarative User Interfaces: Advantages and Architecture"
+    - "Surreal: A Declarative User Interface Case Study"
+      - Reference original declarative approaches (baseline)
+
 - Focus on declarative style API
   - Argue for this rather than the library itself
   - Use library as a case study
+  - Examine backend structure
+    - Connect program structure, backend, and declarative style together
+  - Mention key aspects
+    - Declarative views with hooks for extended functionality
+    - Message-driven (Elm architecture)
+      - Mention observer pattern as an alternative
+    - State persists
+      - Thread-safe
+      - Accessible by all widgets within view tree
+    - View structure
+      - State, widgets, components, views
+      - Share ViewElement trait
+      - Tree is represented by arrays of arrays
+        - Operations are recursive
+
 - Compare to existing solutions (like GTK & QT) and demonstrate advantages of declarative style over imperative
+
 - Explain how I reached my conclusions
+
 - Also point out downsides of declarative approach
+
 - Relate to languages beyond Rust
+
 - Argue in favor of using existing solutions, but declarative wrappers
+
 - Look at Surreal as an API rather than a library
 
 
@@ -21,9 +46,6 @@
 2. QML-style markup language
 3. Boostrapped Designer (like Android Studio)
 
-
-# 1.0 Release
-- Identify the minimum viable product
 
 
 # Goals

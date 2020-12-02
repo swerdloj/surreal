@@ -1,5 +1,12 @@
 # **Surreal**: **S**imple **R**ust **U**ser **I**nterface **L**ibrary
 
+## Note
+
+Surreal originated as a research project. The corresponding paper is currently in process.
+
+As it stands, Surreal is usable, but lacks many features.  
+Surreal exists to explore declarative user interface design patterns.
+
 ## About
 Surreal is a Rust-native UI library focused on simplicity and performance. Below is an example demonstrating the simple, declarative style of Surreal:
 ```Rust
