@@ -39,11 +39,13 @@ pub struct ApplicationSettings {
     pub global_theme: crate::style::Theme,
     pub images: crate::widget::IncludedImages,
     // TODO: Reference the desired image resource
-    pub app_icon: (),
+    pub app_icon: &'static str,
     pub fonts: crate::render::font::IncludedFonts,
     pub fit_window_to_view: bool,
     pub resizable: bool,
-    pub allow_scrollbars: bool,
+    // TODO: This should probably be moved elsewhere
+    //       (more related to `View` than `Application`)
+    // pub allow_scrollbars: bool,
     pub use_vsync: bool,
     pub target_fps: u64,
 }
@@ -56,11 +58,11 @@ impl Default for ApplicationSettings {
             height: 600,
             global_theme: crate::style::DEFAULT_THEME,
             images: Vec::new(),
-            app_icon: (),
+            app_icon: "",
             fonts: Vec::new(),
             fit_window_to_view: true,
             resizable: true,
-            allow_scrollbars: false,
+            // allow_scrollbars: false,
             use_vsync: false,
             target_fps: 60,
         }
@@ -80,7 +82,7 @@ pub struct Application {
 
     fit_window_to_view: bool,
     is_resizable: bool,
-    allows_scrollbars: bool,
+    // allows_scrollbars: bool,
     is_minimized: bool,
 }
 
@@ -122,7 +124,7 @@ impl Application {
 
             fit_window_to_view: settings.fit_window_to_view,
             is_resizable: settings.resizable,
-            allows_scrollbars: settings.allow_scrollbars,
+            // allows_scrollbars: settings.allow_scrollbars,
             is_minimized: false,
         }
     }
@@ -183,7 +185,7 @@ impl Application {
             }
 
             // FIXME: This needs to be updated when views become dynamic
-            if this.is_resizable && !this.allows_scrollbars {
+            if this.is_resizable /* && !this.allows_scrollbars */ {
                 this.window_system.window.set_min_inner_size(Some(winit::dpi::LogicalSize::new(width, height)));
             }
         }
@@ -201,10 +203,6 @@ impl Application {
         // Always render the first frame
         let mut should_render = true;
         let mut should_resize = false;
-
-        // Scroll bars
-        let mut has_hbar = false;
-        let mut has_vbar = false;
 
         let mut mouse_position: (i32, i32) = (0, 0);
 
@@ -245,33 +243,34 @@ impl Application {
                         should_resize = true;
                     }
 
+                    // TODO: Move this to View implementation
                     // Add/Remove scrollbars
-                    // TODO: Bars need fixed positions and should span the window
-                    if this.allows_scrollbars {
-                        use crate::IntoViewElement;
-                        // TODO: need a way to save `render_width/height()` results so
-                        //       the calculations don't need to be repeated constantly
-                        //       (although the size can change periodically)
-                        if !has_hbar && width != 0 && width < view.render_width() {
-                            has_hbar = true;
-                            // TODO: add horizontal scroll bar
-                            view.append(crate::widget::ScrollBar::new("__hbar", 200, 50)
-                                .orientation(crate::Orientation::Horizontal).into_element())
-                        } else if has_hbar && width >= view.render_width() {
-                            has_hbar = false;
-                            view.delete("__hbar").ignore();
-                        }
+                    // TODO: Need fixed positions and should span the window
+                    // if this.allows_scrollbars {
+                    //     use crate::IntoViewElement;
+                    //     // TODO: need a way to save `render_width/height()` results so
+                    //     //       the calculations don't need to be repeated constantly
+                    //     //       (although the size can change periodically)
+                    //     if !has_hbar && width != 0 && width < view.render_width() {
+                    //         has_hbar = true;
+                    //         // TODO: add horizontal scroll bar
+                    //         view.append(crate::widget::ScrollBar::new("__hbar", 200, 50)
+                    //             .orientation(crate::Orientation::Horizontal).into_element())
+                    //     } else if has_hbar && width >= view.render_width() {
+                    //         has_hbar = false;
+                    //         view.delete("__hbar").ignore();
+                    //     }
 
-                        if !has_vbar && height != 0 && height < view.render_height() {
-                            has_vbar = true;
-                            // TODO: add vertical scroll bar
-                            view.append(crate::widget::ScrollBar::new("__vbar", 50, 10)
-                                .orientation(crate::Orientation::Vertical).into_element())
-                        } else if has_vbar && height >= view.render_height() {
-                            has_vbar = false;
-                            view.delete("__vbar").ignore();
-                        }
-                    }
+                    //     if !has_vbar && height != 0 && height < view.render_height() {
+                    //         has_vbar = true;
+                    //         // TODO: add vertical scroll bar
+                    //         view.append(crate::widget::ScrollBar::new("__vbar", 50, 10)
+                    //             .orientation(crate::Orientation::Vertical).into_element())
+                    //     } else if has_vbar && height >= view.render_height() {
+                    //         has_vbar = false;
+                    //         view.delete("__vbar").ignore();
+                    //     }
+                    // }
                 }
 
                 // Touch -> Mouse

@@ -167,7 +167,7 @@ pub fn main() {
         // Two ways to get widgets
 
         GetWidget!(view.more_text as Text)
-        .set_text("Hook");
+            .set_text("Hook");
 
         GetWidget!(Button(reset) from view);
 

@@ -14,6 +14,8 @@ pub struct Button<Msg> {
     color: Option<crate::Color>,
     roundness: f32,
 
+    message_handler: Option<Box<dyn FnMut(&mut Button<Msg>, &Msg, RefMut<State>)>>,
+
     // Register click only when mouse-down *and* mouse-up occur within bounds
     mouse_down_in_bounds: bool,
 
@@ -36,9 +38,23 @@ impl<Msg> Button<Msg> {
             color: None,
             // Negative -> unset
             roundness: -1.0,
+            message_handler: None,
             mouse_down_in_bounds: false,
             should_resize: false,
         }
+    }
+
+    pub fn set_text(&mut self, new_text: &str) {
+        if let Some(text) = &mut self.text {
+            text.set_text(new_text);
+            
+            self.should_resize = true;
+        }
+    }
+
+    pub fn message_handler<F: FnMut(&mut Button<Msg>, &Msg, RefMut<State>) + 'static>(mut self, handler: F) -> Self {
+        self.message_handler = Some(Box::new(handler));
+        self
     }
 
     pub fn on_click<F: FnMut(RefMut<State>) -> Msg + 'static>(mut self, cb: F) -> Self {
@@ -126,6 +142,17 @@ impl<Msg: EmptyMessage> Widget<Msg> for Button<Msg> where Msg: 'static {
         }
 
         crate::EventResponse::None
+    }
+
+    fn handle_message(&mut self, message: &Msg, state: std::cell::RefMut<crate::state::State>) {
+        // NOTE: See `Text::handle_message` for description of this implementation
+        let this = unsafe {
+            (self as *mut Button<Msg>).as_mut().unwrap()
+        };
+        
+        if let Some(handler) = &mut self.message_handler {
+            (handler)(this, message, state);
+        }
     }
 
     fn place(&mut self, x: i32, y: i32) {

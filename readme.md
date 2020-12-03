@@ -4,11 +4,15 @@
 
 Surreal originated as a research project. The corresponding paper is currently in process.
 
+Surreal exists to explore declarative user interface design patterns.  
 As it stands, Surreal is usable, but lacks many features.  
-Surreal exists to explore declarative user interface design patterns.
+
+Please see the **Project** tab for a list of todos. There are also many such todos throughout the Surreal codebase as well as notes for future work.
+
+For a working example, see `examples/test.rs` which demonstrates all of Surreal's current capabilities.
 
 ## About
-Surreal is a Rust-native UI library focused on simplicity and performance. Below is an example demonstrating the simple, declarative style of Surreal:
+Surreal is a Rust-native user interface library focused on simplicity and performance. Below is an example demonstrating the simple, declarative style of Surreal:
 ```Rust
 use surreal::*;
 
@@ -46,9 +50,9 @@ fn main() {
                 Button::new("increment")
                     // Note that nested widgets don't need ids, but they can help with debugging
                     .text(Text::new("") 
-                            .text("+")
-                        )
-                    // Elements can send messages to communicated with other elements
+                        .text("+")
+                    )
+                    // Elements can send messages to communicate with other elements
                     .on_click(|mut state| {
                         @counter += 1;
                         Message::UpdateCounterText
@@ -77,11 +81,12 @@ fn main() {
         bold    => "../bold_font_path",
     };
 
-    // Window settings can be set using a builder pattern
-    let app = Application::new(fonts)
-        .resizable()
-        .centered()
-        .on_quit(|| println!("Quitting..."));
+    // Specify window and application settings
+     let app = Application::new(ApplicationSettings {
+        title: "Surreal Example",
+        fonts,
+        ..Default::default()
+    });
 
     app.run(&mut view);
 }
@@ -91,12 +96,13 @@ fn main() {
 Surreal currently works with the following platforms:
 - Windows
 - Linux
+- Android
+- Web (unstable)
 - Mac (untested)
-- Android (tested, but unstable)
 - iOS (untested)
 
 **Android Builds**  
-To save you a great deal of trouble, here is how to build `wgpu-rs` + `winit` apps for Android:
+How to build `wgpu-rs` + `winit` apps for Android:
 
 1. Install the [sdkmanager](https://developer.android.com/studio/command-line/sdkmanager) tool. See [this](https://stackoverflow.com/a/60598900) for help
 2. Install the build tools and platform tools using `sdkmanager`
@@ -123,7 +129,9 @@ Surreal offers two means of customizing the appearance of an application:
 ### Global Themes
 A global theme defines the default style for all view elements. This includes colors, shapes, fonts, padding, and layouts.
 
-Themes are declared using struct-like syntax:
+See `src/style.rs` for available styling options.
+
+TODO: Themes are declared using struct-like syntax:
 ```Rust
 @Theme: "Example theme"
 
@@ -159,9 +167,9 @@ At the center of these are message--a user defined type sent out by various UI i
 Messages are sent by widgets like so:
 ```Rust
 Widget::new("id")
-    .on_some_event(|mut state| {
+    .on_some_action(|mut state| {
         @state_field.do_something();
-        Message::ResponseToEvent
+        Message::ResponseToAction
     }),
 ```
 
@@ -180,7 +188,9 @@ Widget::new("id")
 ```
 
 ### View Hooks
-View hooks are special in that they gain access to the view itself. This allows for element lookup by id, allowing hooks to effectively replace message handlers:
+View hooks are special in that they gain access to the view itself. This allows for element lookup by id, allowing hooks to effectively replace message handlers.
+
+Additionally, hooks can be used to append and delete widgets within views:
 ```Rust
 let view = ...;
 
@@ -188,20 +198,25 @@ view.set_hook(|this, message| {
     match message {
         MessageType::Variant1 => {
             // Get a widget and cast it to the appropriate type
-            let some_text: &mut Text<_> = get_widget_by_id(view, "text_id");
-            some_text.set_text("Set from hook");
+            GetWidget!(view.text_id as Text);
+                .set_text("Set from hook");
+
+            // Has access to the view
+            this.do_something();
         }
 
         MessageType::Variant2 => {
-            // Has access to the view
-            this.do_something();
+            // Append a widget to the view
+            this.append(Widget::new("id"));
+            // Remove widget from view
+            this.delete("id");
         }
         ...
     }
 });
 ```
 
-## Control Flow (TODO: Update this)
+## Control Flow (TODO: Outdated)
 - **Initialization**:
   - View::_init -> View::init + Widget::init -> View::layout
 - **Main Loop**:

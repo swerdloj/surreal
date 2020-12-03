@@ -48,7 +48,6 @@ impl<Msg: EmptyMessage> super::View<Msg> for Stack<Msg> where Msg: 'static{
         }
     }
 
-    // TODO: All child views should have clones of the root's `State` (and no `Option`)
     fn state(&self) -> Shared<State> {
         self.state.as_ref().unwrap().clone()
     }
